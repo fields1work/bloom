@@ -99,3 +99,26 @@ body {
 .onboarding-fade {
   animation: onboardingFade 360ms ease-out;
 }
+
+@keyframes plantBloom {
+  0% {
+    filter: drop-shadow(0 0 0px #22c55e);
+    transform: scale(1);
+  }
+  35% {
+    filter: drop-shadow(0 0 22px #22c55e) drop-shadow(0 0 8px #86efac);
+    transform: scale(1.07);
+  }
+  70% {
+    filter: drop-shadow(0 0 10px #22c55e);
+    transform: scale(1.02);
+  }
+  100% {
+    filter: drop-shadow(0 0 0px #22c55e);
+    transform: scale(1);
+  }
+}
+
+.plant-bloom-burst {
+  animation: plantBloom 1.4s ease-out;
+}

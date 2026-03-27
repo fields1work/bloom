@@ -1,18 +1,35 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_KEY = "bloom-data-v1";
 const TASK_OPTIONS = [
   { id: "drink-water", label: "💧 Drink water" },
-  { id: "gym-workout", label: "🏋️ Gym / workout" },
+  { id: "gym-workout", label: "🏋️ Move your body (even 10 min counts)" },
   { id: "study-read", label: "📚 Study / read" },
   { id: "meal-prep", label: "🍳 Meal prep" },
-  { id: "walk-outside", label: "🚶 Walk outside" },
+  { id: "walk-outside", label: "🚶 Step outside for 5 min" },
   { id: "sleep-on-time", label: "😴 Sleep on time" },
   { id: "no-phone-30", label: "📵 No phone first 30 min" },
-  { id: "meditate", label: "🧘 Meditate" },
+  { id: "meditate", label: "🧘 Breathe for 2 minutes" },
   { id: "journal", label: "📝 Journal" },
-  { id: "plan-tomorrow", label: "✅ Plan tomorrow tonight" },
+  { id: "plan-tomorrow", label: "✅ Write tomorrow's one task (30 sec)" },
 ];
+
+const FOCUS_TASK_IDS = {
+  gym: ["gym-workout", "walk-outside", "drink-water", "meditate"],
+  school: ["study-read", "journal", "plan-tomorrow", "drink-water"],
+  life: ["meal-prep", "sleep-on-time", "meditate", "journal", "no-phone-30", "plan-tomorrow"],
+};
+
+const TASK_FEEDBACK_MESSAGES = [
+  "Nice. Your plant liked that.",
+  "That counted.",
+  "Keep going.",
+];
+
+function isTaskHighlightedForFocus(taskId, focusArea) {
+  if (!focusArea || !FOCUS_TASK_IDS[focusArea]) return false;
+  return FOCUS_TASK_IDS[focusArea].includes(taskId);
+}
 
 const dayKey = (date = new Date()) => date.toISOString().slice(0, 10);
 
@@ -48,67 +65,120 @@ const getCelebrationMessage = (streak) => {
   return "You showed up. That's everything. 🌱";
 };
 
-function PlantSvg({ stage }) {
+const getHomeGreeting = (hour, failStruggle) => {
+  if (failStruggle === "sleep") {
+    if (hour >= 5 && hour < 12) return "You got up. That's already the hardest part. Check in. 🌱";
+    if (hour >= 12 && hour < 17) return "Afternoon. Set your stop time tonight and stick to it.";
+    if (hour >= 17 && hour < 21) return "Wind down on time tonight. Your streak starts in the morning.";
+    return "Log today before you sleep. One less reason to break the chain.";
+  }
+  if (failStruggle === "phone") {
+    if (hour >= 5 && hour < 12) return "Phone down. Bloom first. Scroll later. 📵";
+    if (hour >= 12 && hour < 17) return "Midday check-in before the scroll takes over.";
+    if (hour >= 17 && hour < 21) return "Two minutes here beats two hours on your phone.";
+    return "Last thing before you scroll — check in. Keep the streak.";
+  }
+  if (failStruggle === "consistency") {
+    if (hour >= 5 && hour < 12) return "Consistent people check in every morning. You're consistent. 🌱";
+    if (hour >= 12 && hour < 17) return "Consistency isn't a feeling. It's a choice. Make it now.";
+    if (hour >= 17 && hour < 21) return "You showed up yesterday. Show up today. That's all it is.";
+    return "Streak on the line. One check-in. Two minutes. Do it.";
+  }
+  if (failStruggle === "focus") {
+    if (hour >= 5 && hour < 12) return "One screen. One task. Everything else waits. 🎯";
+    if (hour >= 12 && hour < 17) return "Halfway through. What's the one thing still left today?";
+    if (hour >= 17 && hour < 21) return "Evening reset. What did you actually finish?";
+    return "Close the tabs. Check in. Ship tomorrow.";
+  }
+  if (hour >= 5 && hour < 12) return "Good morning. Let's not waste today. 🌱";
+  if (hour >= 12 && hour < 17) return "Still time to make today count.";
+  if (hour >= 17 && hour < 21) return "Evening. Did you water your plant today?";
+  return "Don't break your streak. Quick check-in before midnight.";
+};
+
+function formatCountdownToMidnightShort(date) {
+  const midnight = new Date(date);
+  midnight.setHours(24, 0, 0, 0);
+  let ms = midnight.getTime() - date.getTime();
+  if (ms < 0) ms = 0;
+  const totalMin = Math.max(0, Math.ceil(ms / 60000));
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+const WILT_COLORS = [
+  { stem: "#22c55e", leaf: "#22c55e", petal: "#86efac" },
+  { stem: "#65a30d", leaf: "#84cc16", petal: "#bef264" },
+  { stem: "#ca8a04", leaf: "#eab308", petal: "#fbbf24" },
+  { stem: "#a16207", leaf: "#b45309", petal: "#d97706" },
+];
+
+function PlantSvg({ stage, wiltLevel = 0, className = "" }) {
+  const colors = WILT_COLORS[Math.min(wiltLevel, 3)];
+  const droopDeg = wiltLevel * 5;
   return (
     <svg
       viewBox="0 0 200 200"
-      className="mx-auto h-44 w-44 plant-sway"
+      className={`plant-sway mx-auto block h-auto w-full max-w-[min(100%,280px)] ${className}`}
       role="img"
-      aria-label={`Plant stage: ${stage.label}`}
+      aria-label={`Plant stage: ${stage.label}${wiltLevel > 0 ? `, wilting level ${wiltLevel}` : ""}`}
     >
       <ellipse cx="100" cy="166" rx="52" ry="11" fill="#111827" />
       <ellipse cx="100" cy="160" rx="38" ry="20" fill="#1f2937" />
+      <g transform={droopDeg > 0 ? `rotate(${droopDeg}, 100, 152)` : undefined}>
+        {stage.key === "day0" && <ellipse cx="100" cy="132" rx="14" ry="10" fill="#7c4a23" />}
 
-      {stage.key === "day0" && <ellipse cx="100" cy="132" rx="14" ry="10" fill="#7c4a23" />}
+        {stage.key === "day1" && (
+          <>
+            <ellipse cx="100" cy="132" rx="14" ry="10" fill="#7c4a23" />
+            <rect x="99" y="122" width="2" height="10" rx="1" fill={colors.stem} />
+          </>
+        )}
 
-      {stage.key === "day1" && (
-        <>
-          <ellipse cx="100" cy="132" rx="14" ry="10" fill="#7c4a23" />
-          <rect x="99" y="122" width="2" height="10" rx="1" fill="#22c55e" />
-        </>
-      )}
+        {stage.key === "day2" && (
+          <>
+            <ellipse cx="100" cy="134" rx="13" ry="9" fill="#7c4a23" />
+            <rect x="98.8" y="112" width="2.4" height="22" rx="1.2" fill={colors.stem} />
+            <path d="M100 118 C93 114, 90 106, 96 102 C101 104, 103 112, 100 118" fill={colors.leaf} />
+          </>
+        )}
 
-      {stage.key === "day2" && (
-        <>
-          <ellipse cx="100" cy="134" rx="13" ry="9" fill="#7c4a23" />
-          <rect x="98.8" y="112" width="2.4" height="22" rx="1.2" fill="#22c55e" />
-          <path d="M100 118 C93 114, 90 106, 96 102 C101 104, 103 112, 100 118" fill="#22c55e" />
-        </>
-      )}
+        {(stage.key === "sprout" || stage.key === "small" || stage.key === "bloom") && (
+          <rect x="98" y="100" width="4" height="52" rx="2" fill={colors.stem} />
+        )}
 
-      {(stage.key === "sprout" || stage.key === "small" || stage.key === "bloom") && (
-        <rect x="98" y="100" width="4" height="52" rx="2" fill="#22c55e" />
-      )}
+        {stage.key === "sprout" && (
+          <path d="M100 108 C88 102, 82 88, 91 82 C101 85, 105 99, 100 108" fill={colors.leaf} />
+        )}
 
-      {stage.key === "sprout" && (
-        <path d="M100 108 C88 102, 82 88, 91 82 C101 85, 105 99, 100 108" fill="#22c55e" />
-      )}
+        {(stage.key === "sprout" || stage.key === "small" || stage.key === "bloom") && (
+          <>
+            <path d="M100 124 C88 116, 84 102, 94 95 C102 98, 106 112, 100 124" fill={colors.leaf} />
+            <path d="M100 121 C112 113, 116 99, 106 92 C98 95, 94 110, 100 121" fill={colors.leaf} />
+          </>
+        )}
 
-      {(stage.key === "sprout" || stage.key === "small" || stage.key === "bloom") && (
-        <>
-          <path d="M100 124 C88 116, 84 102, 94 95 C102 98, 106 112, 100 124" fill="#22c55e" />
-          <path d="M100 121 C112 113, 116 99, 106 92 C98 95, 94 110, 100 121" fill="#22c55e" />
-        </>
-      )}
+        {(stage.key === "small" || stage.key === "bloom") && (
+          <>
+            <path d="M100 112 C86 106, 80 90, 90 83 C101 86, 106 98, 100 112" fill={colors.leaf} />
+            <path d="M100 110 C114 103, 120 87, 110 80 C99 84, 94 96, 100 110" fill={colors.leaf} />
+          </>
+        )}
 
-      {(stage.key === "small" || stage.key === "bloom") && (
-        <>
-          <path d="M100 112 C86 106, 80 90, 90 83 C101 86, 106 98, 100 112" fill="#22c55e" />
-          <path d="M100 110 C114 103, 120 87, 110 80 C99 84, 94 96, 100 110" fill="#22c55e" />
-        </>
-      )}
-
-      {stage.key === "bloom" && (
-        <g className="petal-pulse" transform="translate(100 84)">
-          <ellipse cx="0" cy="-16" rx="8" ry="13" fill="#86efac" />
-          <ellipse cx="13" cy="-7" rx="8" ry="13" transform="rotate(55)" fill="#86efac" />
-          <ellipse cx="13" cy="7" rx="8" ry="13" transform="rotate(115)" fill="#86efac" />
-          <ellipse cx="0" cy="16" rx="8" ry="13" fill="#86efac" />
-          <ellipse cx="-13" cy="7" rx="8" ry="13" transform="rotate(-115)" fill="#86efac" />
-          <ellipse cx="-13" cy="-7" rx="8" ry="13" transform="rotate(-55)" fill="#86efac" />
-          <circle cx="0" cy="0" r="7" fill="#22c55e" />
-        </g>
-      )}
+        {stage.key === "bloom" && (
+          <g className="petal-pulse" transform="translate(100 84)">
+            <ellipse cx="0" cy="-16" rx="8" ry="13" fill={colors.petal} />
+            <ellipse cx="13" cy="-7" rx="8" ry="13" transform="rotate(55)" fill={colors.petal} />
+            <ellipse cx="13" cy="7" rx="8" ry="13" transform="rotate(115)" fill={colors.petal} />
+            <ellipse cx="0" cy="16" rx="8" ry="13" fill={colors.petal} />
+            <ellipse cx="-13" cy="7" rx="8" ry="13" transform="rotate(-115)" fill={colors.petal} />
+            <ellipse cx="-13" cy="-7" rx="8" ry="13" transform="rotate(-55)" fill={colors.petal} />
+            <circle cx="0" cy="0" r="7" fill={colors.stem} />
+          </g>
+        )}
+      </g>
     </svg>
   );
 }
@@ -123,6 +193,10 @@ const getInitialData = () => {
     plantWiltLevel: 0,
     lastCheckInDate: null,
     hasOnboarded: false,
+    hasCompletedStruggleQuestion: false,
+    hasCompletedFocusOnboarding: false,
+    failStruggle: null,
+    focusArea: null,
     theme: "dark",
   };
 
@@ -144,17 +218,78 @@ const getInitialData = () => {
       }
     }
 
+    if (safe.hasCompletedFocusOnboarding === undefined) {
+      safe.hasCompletedFocusOnboarding = true;
+    }
+    // Existing users who already finished onboarding skip the new struggle question
+    if (safe.hasCompletedFocusOnboarding && safe.hasCompletedStruggleQuestion === false) {
+      safe.hasCompletedStruggleQuestion = true;
+    }
+
     return safe;
   } catch {
     return fallback;
   }
 };
 
+function CheckInCalendar({ entries }) {
+  const days = [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  for (let i = 27; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const isToday = i === 0;
+    const isFuture = false; // loop only goes to today
+    days.push({ key, checked: Boolean(entries[key]), isToday, isFuture });
+  }
+
+  const dayLabels = ["S", "M", "T", "W", "T", "F", "S"];
+  // Pad start so the first day falls on the right column
+  const firstDayOfWeek = new Date(days[0].key).getDay();
+  const padded = [...Array(firstDayOfWeek).fill(null), ...days];
+
+  return (
+    <div>
+      <div className="mb-1 grid grid-cols-7 gap-1">
+        {dayLabels.map((l, i) => (
+          <span key={i} className="text-center text-[10px] text-slate-500">{l}</span>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {padded.map((day, i) =>
+          day === null ? (
+            <div key={`pad-${i}`} />
+          ) : (
+            <div
+              key={day.key}
+              title={day.key}
+              className={`aspect-square w-full rounded-sm ${
+                day.checked
+                  ? "bg-[#22c55e]"
+                  : day.isToday
+                    ? "border border-[#22c55e]/50 bg-transparent"
+                    : "bg-slate-300/40 dark:bg-slate-700/50"
+              }`}
+            />
+          )
+        )}
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const today = dayKey();
   const [data, setData] = useState(getInitialData);
   const [showAbout, setShowAbout] = useState(false);
   const [showCopiedToast, setShowCopiedToast] = useState(false);
+  const [clock, setClock] = useState(() => new Date());
+  const [taskFeedback, setTaskFeedback] = useState(null);
+  const [justCompleted, setJustCompleted] = useState(false);
+  const feedbackRotateRef = useRef(0);
   const [form, setForm] = useState({
     drained: "",
     oneTask: "",
@@ -179,14 +314,40 @@ function App() {
   );
   const motivationMessage = useMemo(() => getMotivationMessage(data.streak), [data.streak]);
   const celebrationMessage = useMemo(() => getCelebrationMessage(data.streak), [data.streak]);
+  const homeGreeting = useMemo(
+    () => getHomeGreeting(clock.getHours(), data.failStruggle),
+    [clock, data.failStruggle],
+  );
+  const midnightCountdownShort = useMemo(
+    () => formatCountdownToMidnightShort(clock),
+    [clock],
+  );
+  const showWaterWarning = !completedToday && clock.getHours() >= 21;
+  const isLateNight = clock.getHours() >= 22;
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [data]);
 
+  useEffect(() => {
+    const id = setInterval(() => setClock(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (!justCompleted) return;
+    const t = setTimeout(() => setJustCompleted(false), 1400);
+    return () => clearTimeout(t);
+  }, [justCompleted]);
+
   const handleTaskToggle = (task) => {
     setForm((prev) => {
       const exists = prev.selectedTasks.includes(task);
+      if (!exists) {
+        const i = feedbackRotateRef.current % TASK_FEEDBACK_MESSAGES.length;
+        feedbackRotateRef.current += 1;
+        setTaskFeedback(TASK_FEEDBACK_MESSAGES[i]);
+      }
       return {
         ...prev,
         selectedTasks: exists
@@ -219,7 +380,7 @@ function App() {
         nextWilt = Math.min(3, prev.plantWiltLevel + (diff - 1));
       }
 
-      const nextData = {
+      return {
         ...prev,
         entries: {
           ...prev.entries,
@@ -233,15 +394,30 @@ function App() {
         plantWiltLevel: nextWilt,
         lastCheckInDate: today,
       };
-
-      return nextData;
     });
+    setJustCompleted(true);
   };
 
   const handleStartJourney = () => {
     setData((prev) => ({
       ...prev,
       hasOnboarded: true,
+    }));
+  };
+
+  const handleStruggleSelect = (struggle) => {
+    setData((prev) => ({
+      ...prev,
+      failStruggle: struggle,
+      hasCompletedStruggleQuestion: true,
+    }));
+  };
+
+  const handleFocusSelect = (focus) => {
+    setData((prev) => ({
+      ...prev,
+      focusArea: focus,
+      hasCompletedFocusOnboarding: true,
     }));
   };
 
@@ -253,7 +429,7 @@ function App() {
   };
 
   const handleShareProgress = async () => {
-    const shareText = `Day ${data.streak} on Bloom 🌱 Showing up daily and watching myself grow. Check it out: [URL once deployed]`;
+    const shareText = `Day ${data.streak} on Bloom 🌱 Showing up daily and watching myself grow. Check it out: https://bloom-rust.vercel.app`;
 
     try {
       if (navigator.share) {
@@ -289,7 +465,7 @@ function App() {
               : "border-[#22c55e]/30 bg-white/95 shadow-emerald-100"
           }`}
         >
-          <PlantSvg stage={buildPlantStage(0)} />
+          <PlantSvg stage={buildPlantStage(0)} wiltLevel={0} className="max-w-[220px]" />
           <h1 className={`mt-2 text-3xl font-semibold tracking-tight ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
             Bloom <span aria-hidden="true">🌱</span>
           </h1>
@@ -311,6 +487,115 @@ function App() {
           <p className={`mt-2 text-xs ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
             Join others building better habits
           </p>
+        </section>
+      </main>
+    );
+  }
+
+  if (data.hasOnboarded && !data.hasCompletedStruggleQuestion) {
+    const STRUGGLE_OPTIONS = [
+      { id: "sleep", label: "😴 Sleep schedule" },
+      { id: "phone", label: "📵 Phone addiction" },
+      { id: "consistency", label: "🔁 Consistency" },
+      { id: "focus", label: "🎯 Focus" },
+    ];
+    return (
+      <main
+        className={`mx-auto flex min-h-screen w-full max-w-[390px] items-center px-4 py-6 sm:px-6 ${
+          isDarkMode ? "bg-[#0d0d0d] text-slate-100" : "bg-[#f9fafb] text-slate-900"
+        }`}
+      >
+        <section
+          className={`onboarding-fade w-full rounded-3xl border p-6 text-center shadow-2xl ${
+            isDarkMode
+              ? "border-[#22c55e]/25 bg-slate-900/90 shadow-black/40"
+              : "border-[#22c55e]/30 bg-white/95 shadow-emerald-100"
+          }`}
+        >
+          <PlantSvg stage={buildPlantStage(1)} wiltLevel={0} className="max-w-[180px]" />
+          <h2 className={`mt-3 text-xl font-semibold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
+            What's the one thing you keep failing at?
+          </h2>
+          <p className={`mt-2 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
+            Be honest. That's where we'll focus first.
+          </p>
+          <div className="mt-5 flex flex-col gap-2">
+            {STRUGGLE_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => handleStruggleSelect(opt.id)}
+                className={`w-full rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                  isDarkMode
+                    ? "border-slate-600 bg-slate-800 text-slate-200 hover:border-[#22c55e]/60 hover:bg-[#22c55e]/15 hover:text-[#bbf7d0]"
+                    : "border-slate-300 bg-white text-slate-800 hover:border-[#22c55e]/50 hover:bg-[#22c55e]/10 hover:text-[#166534]"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  if (data.hasOnboarded && data.hasCompletedStruggleQuestion && !data.hasCompletedFocusOnboarding) {
+    return (
+      <main
+        className={`mx-auto flex min-h-screen w-full max-w-[390px] items-center px-4 py-6 sm:px-6 ${
+          isDarkMode ? "bg-[#0d0d0d] text-slate-100" : "bg-[#f9fafb] text-slate-900"
+        }`}
+      >
+        <section
+          className={`onboarding-fade w-full rounded-3xl border p-6 text-center shadow-2xl ${
+            isDarkMode
+              ? "border-[#22c55e]/25 bg-slate-900/90 shadow-black/40"
+              : "border-[#22c55e]/30 bg-white/95 shadow-emerald-100"
+          }`}
+        >
+          <PlantSvg stage={buildPlantStage(0)} wiltLevel={0} className="max-w-[200px]" />
+          <h2 className={`mt-2 text-xl font-semibold ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>
+            What do you want to focus on right now?
+          </h2>
+          <p className={`mt-2 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
+            We&apos;ll highlight tasks that match your focus.
+          </p>
+          <div className="mt-6 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={() => handleFocusSelect("gym")}
+              className={`w-full rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                isDarkMode
+                  ? "border-[#22c55e]/40 bg-[#22c55e]/15 text-[#bbf7d0] hover:bg-[#22c55e]/25"
+                  : "border-[#22c55e]/35 bg-[#22c55e]/10 text-[#166534] hover:bg-[#22c55e]/20"
+              }`}
+            >
+              Gym
+            </button>
+            <button
+              type="button"
+              onClick={() => handleFocusSelect("school")}
+              className={`w-full rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                isDarkMode
+                  ? "border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700"
+                  : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
+              }`}
+            >
+              School
+            </button>
+            <button
+              type="button"
+              onClick={() => handleFocusSelect("life")}
+              className={`w-full rounded-xl border px-4 py-3 text-sm font-medium transition ${
+                isDarkMode
+                  ? "border-slate-600 bg-slate-800 text-slate-200 hover:bg-slate-700"
+                  : "border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
+              }`}
+            >
+              Life reset
+            </button>
+          </div>
         </section>
       </main>
     );
@@ -349,14 +634,25 @@ function App() {
           </button>
         </header>
 
+        <p className={`mb-2 text-center text-sm font-medium leading-snug ${isDarkMode ? "text-slate-200" : "text-slate-800"}`}>
+          {homeGreeting}
+        </p>
+        {showWaterWarning && (
+          <p className="mb-3 text-center text-xs text-amber-400/95">
+            ⚠️ Your plant is starting to wilt. Check in before midnight.
+          </p>
+        )}
+
         <div
-          className={`mb-6 rounded-2xl border p-4 text-center shadow-[0_0_30px_rgba(34,197,94,0.18)] ${
+          className={`mb-6 flex min-h-[min(64vh,540px)] flex-col rounded-2xl border p-4 text-center shadow-[0_0_30px_rgba(34,197,94,0.18)] ${
             isDarkMode
               ? "border-[#22c55e]/25 bg-slate-800/60"
               : "border-[#22c55e]/30 bg-emerald-50/80"
           }`}
         >
-          <PlantSvg stage={plant} />
+          <div className="flex min-h-[min(42vh,320px)] flex-[1_1_40%] items-center justify-center py-3">
+            <PlantSvg stage={plant} wiltLevel={data.plantWiltLevel} className="max-h-[min(48vh,340px)] max-w-[min(100%,340px)]" />
+          </div>
           <p className={`text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>{plant.label}</p>
           <p className="mt-1 text-sm text-[#86efac]">{motivationMessage}</p>
           <div className={`mt-3 flex justify-center gap-2 text-xs ${isDarkMode ? "text-slate-400" : "text-slate-500"}`}>
@@ -367,12 +663,18 @@ function App() {
               Best: <strong className="text-[#22c55e]">{data.bestStreak}</strong>
             </span>
           </div>
+          <div className="mt-4 px-1">
+            <p className={`mb-2 text-xs uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
+              Last 4 weeks
+            </p>
+            <CheckInCalendar entries={data.entries} />
+          </div>
         </div>
 
         <section>
           <h2 className={`text-lg font-medium ${isDarkMode ? "text-slate-100" : "text-slate-900"}`}>Today's check-in</h2>
           <p className={`mb-4 mt-1 text-sm ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
-            Start your day with clarity. Complete this to help your plant grow.
+            The streak doesn&apos;t build itself. Two minutes. Let&apos;s go.
           </p>
 
           {completedToday ? (
@@ -384,13 +686,26 @@ function App() {
                   </span>
                   <p className="text-sm font-medium text-[#bbf7d0]">{celebrationMessage}</p>
                 </div>
-                <PlantSvg stage={plant} />
+                <div className="flex min-h-[min(36vh,320px)] items-center justify-center py-2">
+                  <PlantSvg
+                    stage={plant}
+                    wiltLevel={data.plantWiltLevel}
+                    className={`max-h-[min(36vh,280px)] max-w-[min(100%,300px)]${justCompleted ? " plant-bloom-burst" : ""}`}
+                  />
+                </div>
                 <p className="text-sm text-[#86efac]">
                   Check-in complete. Current streak:{" "}
                   <strong className="text-[#22c55e]">{data.streak}</strong>
                 </p>
-                <p className={`mt-1 text-xs italic ${isDarkMode ? "text-slate-400" : "text-slate-600"}`}>
-                  Come back tomorrow to keep your plant alive.
+                <p className={`mt-2 text-sm font-medium ${isDarkMode ? "text-[#bbf7d0]" : "text-[#166534]"}`}>
+                  Your plant is counting on you tomorrow. 🌱
+                </p>
+                <p className={`mt-3 tabular-nums transition-all ${
+                  isLateNight
+                    ? "text-base font-semibold text-amber-400"
+                    : `text-sm ${isDarkMode ? "text-slate-200" : "text-slate-800"}`
+                }`}>
+                  Resets in: {midnightCountdownShort}{isLateNight ? " ⚠️" : " — Don't lose today"}
                 </p>
                 {selectedTaskLabelsToday.length > 0 && (
                   <div className="mt-3">
@@ -409,6 +724,12 @@ function App() {
                     </div>
                   </div>
                 )}
+                <div className="mt-4 text-left">
+                  <p className={`mb-2 text-xs uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-600"}`}>
+                    Last 4 weeks
+                  </p>
+                  <CheckInCalendar entries={data.entries} />
+                </div>
                 <button
                   type="button"
                   onClick={handleShareProgress}
@@ -452,6 +773,9 @@ function App() {
             </div>
           ) : (
             <form className="space-y-3" onSubmit={handleSubmit}>
+              <p className={`text-center text-xs ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
+                You&apos;re someone who shows up.
+              </p>
               <label className="block">
                 <span className={`mb-1 block text-sm ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>What drained you yesterday?</span>
                 <input
@@ -506,9 +830,15 @@ function App() {
 
               <div>
                 <p className={`mb-2 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-700"}`}>Task menu</p>
+                {taskFeedback && (
+                  <p className={`mb-2 text-center text-xs ${isDarkMode ? "text-[#86efac]" : "text-[#166534]"}`}>
+                    {taskFeedback}
+                  </p>
+                )}
                 <div className="flex flex-wrap items-start gap-2">
                   {TASK_OPTIONS.map((task) => {
                     const selected = form.selectedTasks.includes(task.id);
+                    const highlighted = isTaskHighlightedForFocus(task.id, data.focusArea);
                     return (
                       <button
                         key={task.id}
@@ -517,9 +847,13 @@ function App() {
                         className={`rounded-full border px-3 py-1 text-xs transition ${
                           selected
                             ? "border-[#22c55e] bg-[#22c55e]/20 text-[#86efac]"
-                            : isDarkMode
-                              ? "border-slate-600 bg-slate-800 text-slate-300"
-                              : "border-slate-300 bg-white text-slate-700"
+                            : highlighted
+                              ? isDarkMode
+                                ? "border-[#22c55e]/70 bg-[#22c55e]/10 text-[#bbf7d0] ring-1 ring-[#22c55e]/40"
+                                : "border-[#22c55e]/60 bg-[#22c55e]/10 text-[#166534] ring-1 ring-[#22c55e]/35"
+                              : isDarkMode
+                                ? "border-slate-600 bg-slate-800 text-slate-300"
+                                : "border-slate-300 bg-white text-slate-700"
                         }`}
                       >
                         {task.label}
@@ -559,6 +893,52 @@ function App() {
             >
               @focuswithfields on TikTok
             </a>
+            <div className={`mt-4 rounded-xl border p-3 ${isDarkMode ? "border-slate-700 bg-slate-800/60" : "border-slate-200 bg-slate-50"}`}>
+              <p className={`mb-2 text-xs uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
+                Recommended tools
+              </p>
+              <div className="flex flex-col gap-2">
+                <a
+                  href="https://www.amazon.com/dp/0735211299?tag=focuswithfiel-20"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition ${
+                    isDarkMode
+                      ? "border-slate-600 bg-slate-700/50 text-slate-300 hover:text-slate-100"
+                      : "border-slate-300 bg-white text-slate-700 hover:text-slate-900"
+                  }`}
+                >
+                  <span>📖</span>
+                  <span>Atomic Habits — James Clear</span>
+                </a>
+                <a
+                  href="https://www.amazon.com/dp/B00JGFQTD2?tag=focuswithfiel-20"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition ${
+                    isDarkMode
+                      ? "border-slate-600 bg-slate-700/50 text-slate-300 hover:text-slate-100"
+                      : "border-slate-300 bg-white text-slate-700 hover:text-slate-900"
+                  }`}
+                >
+                  <span>📵</span>
+                  <span>Phone lock box (kSafe)</span>
+                </a>
+                <a
+                  href="https://www.amazon.com/dp/B001NCDE44?tag=focuswithfiel-20"
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs transition ${
+                    isDarkMode
+                      ? "border-slate-600 bg-slate-700/50 text-slate-300 hover:text-slate-100"
+                      : "border-slate-300 bg-white text-slate-700 hover:text-slate-900"
+                  }`}
+                >
+                  <span>💧</span>
+                  <span>32 oz water bottle (Nalgene)</span>
+                </a>
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => setShowAbout(false)}
