@@ -428,6 +428,15 @@ function App() {
     }));
   };
 
+  const handleShareToTwitter = () => {
+    const text = `Day ${data.streak} on Bloom 🌱 ${plant.label}. Showing up daily. bloom-rust.vercel.app #focuswithfields`;
+    window.open(
+      `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
+      "_blank",
+      "noopener,noreferrer,width=550,height=420"
+    );
+  };
+
   const handleShareProgress = async () => {
     const shareText = `Day ${data.streak} on Bloom 🌱 Showing up daily and watching myself grow. Check it out: https://bloom-rust.vercel.app`;
 
@@ -730,15 +739,28 @@ function App() {
                   </p>
                   <CheckInCalendar entries={data.entries} />
                 </div>
-                <button
-                  type="button"
-                  onClick={handleShareProgress}
-                  className={`mt-4 w-full rounded-lg border border-[#22c55e]/50 bg-gradient-to-r from-[#22c55e]/25 to-[#4ade80]/25 px-3 py-2 text-sm font-semibold transition hover:from-[#22c55e]/35 hover:to-[#4ade80]/35 ${
-                    isDarkMode ? "text-[#bbf7d0]" : "text-[#166534]"
-                  }`}
-                >
-                  Share my streak <span aria-hidden="true">🌱</span>
-                </button>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleShareProgress}
+                    className={`flex-1 rounded-lg border border-[#22c55e]/50 bg-gradient-to-r from-[#22c55e]/25 to-[#4ade80]/25 px-3 py-2 text-sm font-semibold transition hover:from-[#22c55e]/35 hover:to-[#4ade80]/35 ${
+                      isDarkMode ? "text-[#bbf7d0]" : "text-[#166534]"
+                    }`}
+                  >
+                    Share 🌱
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleShareToTwitter}
+                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+                      isDarkMode
+                        ? "border-slate-600 bg-slate-800/60 text-slate-300 hover:border-slate-500 hover:text-slate-100"
+                        : "border-slate-300 bg-slate-50 text-slate-600 hover:text-slate-900"
+                    }`}
+                  >
+                    Post on X
+                  </button>
+                </div>
                 <p className={`mt-3 text-[11px] ${isDarkMode ? "text-slate-500" : "text-slate-600"}`}>
                   Bloom - show up daily. Watch yourself grow.
                 </p>
@@ -892,6 +914,14 @@ function App() {
               className="mt-3 inline-block text-sm text-[#22c55e] underline underline-offset-2"
             >
               @focuswithfields on TikTok
+            </a>
+            <a
+              href="https://fields1work.github.io"
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-block text-sm text-[#22c55e] underline underline-offset-2"
+            >
+              All my links →
             </a>
             <div className={`mt-4 rounded-xl border p-3 ${isDarkMode ? "border-slate-700 bg-slate-800/60" : "border-slate-200 bg-slate-50"}`}>
               <p className={`mb-2 text-xs uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
