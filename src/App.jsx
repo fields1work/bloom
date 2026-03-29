@@ -706,6 +706,28 @@ function App() {
               Best: <strong className="text-[#22c55e]">{data.bestStreak}</strong>
             </span>
           </div>
+          <div className="mt-3 px-2">
+            {(() => {
+              const wilt = data.plantWiltLevel;
+              const healthPct = data.streak > 0 ? Math.max(8, 100 - wilt * 30) : Math.max(8, 33 - wilt * 11);
+              const healthColor = wilt === 0 ? "#22c55e" : wilt === 1 ? "#eab308" : "#f87171";
+              const healthLabel = wilt === 0 && data.streak > 0 ? "Healthy" : wilt === 0 ? "New" : wilt === 1 ? "Wilting" : wilt === 2 ? "Struggling" : "Critical";
+              return (
+                <>
+                  <div className={`mb-1 flex items-center justify-between text-xs ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
+                    <span>Plant health</span>
+                    <span style={{ color: healthColor }}>{healthLabel}</span>
+                  </div>
+                  <div className={`h-1.5 w-full overflow-hidden rounded-full ${isDarkMode ? "bg-slate-700/50" : "bg-slate-200"}`}>
+                    <div
+                      className="h-full rounded-full transition-all duration-700"
+                      style={{ width: `${healthPct}%`, background: healthColor }}
+                    />
+                  </div>
+                </>
+              );
+            })()}
+          </div>
           <div className="mt-4 px-1">
             <p className={`mb-2 text-xs uppercase tracking-[0.14em] ${isDarkMode ? "text-slate-500" : "text-slate-500"}`}>
               Last 4 weeks
