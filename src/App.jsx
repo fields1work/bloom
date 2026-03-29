@@ -232,6 +232,39 @@ const getInitialData = () => {
   }
 };
 
+const PARTICLE_CONFIG = [
+  { left: "12%", delay: "0s",    dur: "4.2s", drift: "8px"  },
+  { left: "26%", delay: "1.1s",  dur: "5.0s", drift: "-6px" },
+  { left: "42%", delay: "0.4s",  dur: "3.8s", drift: "10px" },
+  { left: "58%", delay: "2.0s",  dur: "4.6s", drift: "-8px" },
+  { left: "73%", delay: "0.8s",  dur: "5.3s", drift: "5px"  },
+  { left: "87%", delay: "1.6s",  dur: "4.0s", drift: "-10px"},
+];
+
+function PlantParticles() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl" aria-hidden="true">
+      {PARTICLE_CONFIG.map((p, i) => (
+        <span
+          key={i}
+          style={{
+            position: "absolute",
+            bottom: "20%",
+            left: p.left,
+            width: "5px",
+            height: "5px",
+            borderRadius: "50%",
+            background: "#22c55e",
+            boxShadow: "0 0 7px rgba(34,197,94,0.55)",
+            animation: `particleFloat ${p.dur} ease-in-out ${p.delay} infinite`,
+            "--drift": p.drift,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
 function CheckInCalendar({ entries }) {
   const days = [];
   const today = new Date();
@@ -653,12 +686,13 @@ function App() {
         )}
 
         <div
-          className={`mb-6 flex min-h-[min(64vh,540px)] flex-col rounded-2xl border p-4 text-center shadow-[0_0_30px_rgba(34,197,94,0.18)] ${
+          className={`relative mb-6 flex min-h-[min(64vh,540px)] flex-col overflow-hidden rounded-2xl border p-4 text-center shadow-[0_0_30px_rgba(34,197,94,0.18)] ${
             isDarkMode
               ? "border-[#22c55e]/25 bg-slate-800/60"
               : "border-[#22c55e]/30 bg-emerald-50/80"
           }`}
         >
+          <PlantParticles />
           <div className="flex min-h-[min(42vh,320px)] flex-[1_1_40%] items-center justify-center py-3">
             <PlantSvg stage={plant} wiltLevel={data.plantWiltLevel} className="max-h-[min(48vh,340px)] max-w-[min(100%,340px)]" />
           </div>

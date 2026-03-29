@@ -122,3 +122,10 @@ body {
 .plant-bloom-burst {
   animation: plantBloom 1.4s ease-out;
 }
+
+@keyframes particleFloat {
+  0%   { transform: translateY(0) translateX(0); opacity: 0; }
+  10%  { opacity: 0.7; }
+  90%  { opacity: 0.25; }
+  100% { transform: translateY(-180px) translateX(var(--drift, 0px)); opacity: 0; }
+}
