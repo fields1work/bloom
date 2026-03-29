@@ -415,7 +415,8 @@ function App() {
   }, [data]);
 
   useEffect(() => {
-    const id = setInterval(() => setClock(new Date()), 1000);
+    // 60s interval — countdown shows Xh Ym precision, greeting uses hours only
+    const id = setInterval(() => setClock(new Date()), 60_000);
     return () => clearInterval(id);
   }, []);
 
