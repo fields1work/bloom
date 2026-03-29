@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Script Generator · @focuswithfields</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:            #0d0d0d;
+      --surface:       #111111;
+      --surface2:      #181818;
+      --border:        rgba(255,255,255,0.07);
+      --border-hover:  rgba(34,197,94,0.35);
+      --accent:        #22c55e;
+      --accent-dim:    rgba(34,197,94,0.12);
+      --accent-border: rgba(34,197,94,0.28);
+      --text:          #f1f5f9;
+      --text-dim:      #94a3b8;
+      --text-muted:    #475569;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 36px 16px 80px;
+      line-height: 1.5;
+    }
+
+    .container { max-width: 680px; margin: 0 auto; }
+
+    /* ── Header ─────────────────────────────── */
+    header { margin-bottom: 32px; }
+    header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+    header p  { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+    .accent   { color: var(--accent); }
+
+    /* ── Input card ─────────────────────────── */
+    .input-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    .field label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    /* ── History ────────────────────────────── */
+    .history-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .history-row label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); white-space: nowrap; }
+    #history-select {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 13px;
+      color: var(--text-dim);
+      outline: none;
+      font-family: inherit;
+      cursor: pointer;
+      transition: border-color 0.18s;
+    }
+    #history-select:focus { border-color: var(--border-hover); }
+    #history-select option { background: #1a1a1a; color: var(--text); }
+    .btn-clear-hist {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 7px;
+      padding: 6px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-clear-hist:hover { border-color: rgba(248,113,113,0.4); color: #f87171; }
+
+    .field input[type="text"] {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 13px;
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.18s;
+      width: 100%;
+    }
+    .field input::placeholder { color: var(--text-muted); }
+    .field input:focus { border-color: var(--border-hover); }
+
+    #generate-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #0a0a0a;
+      border: none;
+      border-radius: 10px;
+      padding: 11px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.18s;
+      letter-spacing: -0.01em;
+    }
+    #generate-btn:hover { background: #4ade80; }
+
+    /* ── Output card ────────────────────────── */
+    #output { display: none; }
+    #output.visible { display: block; }
+
+    .output-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      animation: fadeUp 0.22s ease-out;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .output-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .btn-copy-prompt {
+      background: var(--accent);
+      color: #0a0a0a;
+      border: none;
+      border-radius: 8px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.18s;
+      white-space: nowrap;
+    }
+    .btn-copy-prompt:hover { background: #4ade80; }
+    .btn-copy-prompt.copied {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      color: var(--accent);
+    }
+
+    #prompt-box {
+      padding: 18px 16px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.75;
+      color: var(--text-dim);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 72vh;
+      overflow-y: auto;
+    }
+
+    /* Highlight sections inside the prompt */
+    #prompt-box .section-head {
+      color: var(--accent);
+      font-weight: bold;
+    }
+    #prompt-box .topic-line {
+      color: var(--text);
+      font-weight: bold;
+    }
+
+    .hint {
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hint a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .hint a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>Script Generator<span class="accent">.</span></h1>
+    <p>@focuswithfields · generates a ready-to-paste Claude.ai prompt</p>
+  </header>
+
+  <div class="input-card">
+    <div class="history-row" id="history-row" style="display:none">
+      <label>Recent</label>
+      <select id="history-select" onchange="loadFromHistory(this.value)">
+        <option value="">— pick a past topic —</option>
+      </select>
+      <button class="btn-clear-hist" onclick="clearHistory()">Clear</button>
+    </div>
+    <div class="field">
+      <label for="topic">Topic</label>
+      <input type="text" id="topic" placeholder="e.g. morning routine, phone addiction, consistency" autocomplete="off" />
+    </div>
+    <button id="generate-btn" onclick="generate()">Build Prompt</button>
+  </div>
+
+  <div id="output">
+    <div class="output-card">
+      <div class="output-header">
+        <span class="output-label">Prompt — ready to paste</span>
+        <button class="btn-copy-prompt" id="copy-btn" onclick="copyPrompt()">Copy Prompt</button>
+      </div>
+      <div id="prompt-box"></div>
+      <div class="hint">
+        Copy → open <a href="https://claude.ai" target="_blank" rel="noreferrer">claude.ai</a> → paste → send.
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  const FORMULA = `You are Nova, a TikTok script writer for @focuswithfields. Write a 6-slide productivity slideshow script following these exact rules:
+
+SLIDE 1 - Hook: Under 8 words. Must reference a specific lived moment, not a general statement. Triggers "oh shit that's literally me." Ends with em dash.
+SLIDE 2 - Relatable: 3 lines max. Uncomfortable self-recognition. Reader feels caught. Meme energy without the image. No information.
+SLIDE 3 - Reframe: Flip the assumption from slide 2. Maintain tension. Do not resolve yet.
+SLIDE 4 - Why: Start with "Why:" label. 2-3 lines of simple brain science. Zero academic language. No preaching. Give the experience a name if possible.
+SLIDE 5 - Fix: Start with "Fix:" label. 3 bullet points using •. Each bullet actionable and doable in under 10 seconds.
+SLIDE 6 - CTA: Exact format: "Save this when [specific moment tied to topic]." One line. No emojis.
+
+RULES:
+- No emojis anywhere in output
+- No corporate language
+- No academic words like "dopamine substitution" or "neural pathways"
+- Emotional discomfort over information always
+- Label each slide clearly: SLIDE 1, SLIDE 2, etc.
+
+Topic: `;
+
+  const HIST_KEY = "fwf_sg_history";
+  let lastPrompt = "";
+
+  const topicEl = document.getElementById("topic");
+  topicEl.addEventListener("keydown", e => { if (e.key === "Enter") generate(); });
+
+  // ── History helpers ───────────────────────────────────────────────────────
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem(HIST_KEY)) || []; } catch { return []; }
+  }
+
+  function saveToHistory(topic) {
+    let hist = getHistory().filter(t => t !== topic); // dedupe
+    hist.unshift(topic);
+    hist = hist.slice(0, 10);
+    localStorage.setItem(HIST_KEY, JSON.stringify(hist));
+    renderHistoryDropdown();
+  }
+
+  function clearHistory() {
+    localStorage.removeItem(HIST_KEY);
+    renderHistoryDropdown();
+  }
+
+  function loadFromHistory(val) {
+    if (!val) return;
+    document.getElementById("topic").value = val;
+    generate();
+    document.getElementById("history-select").value = "";
+  }
+
+  function renderHistoryDropdown() {
+    const hist = getHistory();
+    const row = document.getElementById("history-row");
+    const sel  = document.getElementById("history-select");
+    if (!hist.length) { row.style.display = "none"; return; }
+    row.style.display = "flex";
+    sel.innerHTML = '<option value="">— pick a past topic —</option>' +
+      hist.map(t => `<option value="${t.replace(/"/g, '&quot;')}">${t}</option>`).join("");
+  }
+
+  function generate() {
+    const topic = topicEl.value.trim();
+    if (!topic) { topicEl.focus(); return; }
+
+    saveToHistory(topic);
+    lastPrompt = FORMULA + topic;
+
+    // Render with lightweight syntax highlights
+    const box = document.getElementById("prompt-box");
+    box.innerHTML = renderPrompt(lastPrompt, topic);
+
+    const out = document.getElementById("output");
+    out.classList.add("visible");
+    out.scrollIntoView({ behavior: "smooth", block: "nearest" });
+
+    // Reset copy button
+    const btn = document.getElementById("copy-btn");
+    btn.textContent = "Copy Prompt";
+    btn.classList.remove("copied");
+  }
+
+  function renderPrompt(text, topic) {
+    // Escape HTML first
+    const esc = s => s
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+
+    let html = esc(text);
+
+    // Highlight slide headings
+    html = html.replace(/(SLIDE \d+ - \w+:)/g, '<span class="section-head">$1</span>');
+    // Highlight RULES heading
+    html = html.replace(/(RULES:)/, '<span class="section-head">$1</span>');
+    // Highlight the topic line at the end
+    html = html.replace(
+      /(Topic: )(.+)$/,
+      '$1<span class="topic-line">$2</span>'
+    );
+
+    return html;
+  }
+
+  // Init
+  renderHistoryDropdown();
+
+  async function copyPrompt() {
+    if (!lastPrompt) return;
+    const btn = document.getElementById("copy-btn");
+    try {
+      await navigator.clipboard.writeText(lastPrompt);
+    } catch {
+      const ta = Object.assign(document.createElement("textarea"), {
+        value: lastPrompt,
+        style: "position:fixed;opacity:0",
+      });
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+    btn.textContent = "Copied!";
+    btn.classList.add("copied");
+    setTimeout(() => {
+      btn.textContent = "Copy Prompt";
+      btn.classList.remove("copied");
+    }, 2000);
+  }
+</script>
+</body>
+</html>
