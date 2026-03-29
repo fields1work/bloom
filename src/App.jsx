@@ -958,7 +958,7 @@ function App() {
       </section>
       {showAbout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className={`w-full max-w-sm rounded-2xl border p-5 ${isDarkMode ? "border-slate-700 bg-slate-900 text-slate-100" : "border-slate-300 bg-white text-slate-900"}`}>
+          <div className={`w-full max-w-sm overflow-y-auto rounded-2xl border p-5 ${isDarkMode ? "border-slate-700 bg-slate-900 text-slate-100" : "border-slate-300 bg-white text-slate-900"}`} style={{ maxHeight: "90dvh" }}>
             <h3 className="text-lg font-semibold">About Bloom</h3>
             <p className={`mt-2 text-sm ${isDarkMode ? "text-slate-300" : "text-slate-600"}`}>
               Show up daily. Watch yourself grow.

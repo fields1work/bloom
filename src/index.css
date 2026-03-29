@@ -8,12 +8,19 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
   font-family: Inter, "Segoe UI", Roboto, sans-serif;
   background-color: #0d0d0d;
   color: #e5e7eb;
+  overflow-x: hidden;
+  /* Prevent pull-to-refresh hijacking layout on iOS */
+  overscroll-behavior-y: contain;
 }
 
 #root {
