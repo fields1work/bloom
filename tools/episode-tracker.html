@@ -1,0 +1,879 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Episode Tracker · @focuswithfields</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0d0d0d;
+      --surface:      #111111;
+      --surface2:     #181818;
+      --surface3:     #1e1e1e;
+      --border:       rgba(255,255,255,0.07);
+      --border-hi:    rgba(34,197,94,0.35);
+      --accent:       #22c55e;
+      --accent-dim:   rgba(34,197,94,0.12);
+      --accent-bd:    rgba(34,197,94,0.28);
+      --text:         #f1f5f9;
+      --text-dim:     #94a3b8;
+      --text-muted:   #475569;
+      --amber:        #fbbf24;
+      --amber-dim:    rgba(251,191,36,0.12);
+      --red:          #f87171;
+      --red-dim:      rgba(248,113,113,0.10);
+      --col-w:        260px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+      min-height: 100vh;
+      padding: 32px 16px 80px;
+      line-height: 1.5;
+    }
+
+    /* ── Layout ─────────────────────────────── */
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    /* ── Header ─────────────────────────────── */
+    .top-bar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .top-bar h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+    .top-bar p  { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    .accent     { color: var(--accent); }
+
+    .top-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.18s, color 0.18s;
+      white-space: nowrap;
+    }
+    .btn-outline:hover { border-color: var(--border-hi); color: var(--accent); }
+    .btn-outline.copied { border-color: var(--accent); color: var(--accent); }
+
+    /* ── Stats row ──────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 640px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .stat-val {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--accent);
+      line-height: 1.1;
+    }
+    .stat-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── Add / Edit form ────────────────────── */
+    .form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 24px;
+    }
+    .form-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 80px 1fr 130px 110px 120px auto;
+      gap: 8px;
+      align-items: end;
+    }
+    @media (max-width: 760px) {
+      .form-grid { grid-template-columns: 80px 1fr 130px; }
+    }
+    @media (max-width: 480px) {
+      .form-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .form-field { display: flex; flex-direction: column; gap: 4px; }
+    .form-field label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    input[type="text"],
+    input[type="number"],
+    select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      font-family: inherit;
+      width: 100%;
+      transition: border-color 0.18s;
+      -moz-appearance: textfield;
+    }
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    input::placeholder, select option:disabled { color: var(--text-muted); }
+    input:focus, select:focus { border-color: var(--border-hi); }
+    select { cursor: pointer; }
+    select option { background: #1e1e1e; color: var(--text); }
+
+    .score-field { display: flex; flex-direction: column; gap: 4px; }
+    .score-row-input { display: flex; align-items: center; gap: 8px; }
+    input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+      cursor: pointer;
+      height: 4px;
+    }
+    .score-display {
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 600;
+      min-width: 28px;
+      text-align: right;
+    }
+
+    .btn-add {
+      background: var(--accent);
+      color: #0a0a0a;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: background 0.18s;
+      align-self: flex-end;
+      height: 34px;
+    }
+    .btn-add:hover { background: #4ade80; }
+    .btn-add.editing { background: var(--amber); }
+    .btn-add.editing:hover { background: #fde68a; }
+
+    .btn-cancel {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      height: 34px;
+      align-self: flex-end;
+      transition: border-color 0.18s;
+      display: none;
+    }
+    .btn-cancel:hover { border-color: var(--red); color: var(--red); }
+    .btn-cancel.visible { display: block; }
+
+    .form-error {
+      font-size: 12px;
+      color: var(--red);
+      margin-top: 8px;
+      min-height: 16px;
+    }
+
+    /* ── Kanban ─────────────────────────────── */
+    .kanban {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+    @media (max-width: 720px) { .kanban { grid-template-columns: 1fr; } }
+
+    .col-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color 0.18s;
+    }
+    .col-wrap.drag-over { border-color: var(--accent); }
+
+    .col-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .col-name {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    .col-name.writing { color: var(--amber); }
+    .col-name.ready   { color: #60a5fa; }
+    .col-name.posted  { color: var(--accent); }
+
+    .col-count {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 1px 8px;
+    }
+
+    .col-body {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 80px;
+      max-height: 68vh;
+      overflow-y: auto;
+    }
+
+    .col-empty {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 20px 0;
+    }
+
+    /* ── Episode card ───────────────────────── */
+    .ep-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 12px;
+      cursor: grab;
+      transition: border-color 0.18s, box-shadow 0.18s, opacity 0.18s;
+      user-select: none;
+    }
+    .ep-card:hover { border-color: rgba(255,255,255,0.13); }
+    .ep-card.dragging { opacity: 0.35; cursor: grabbing; }
+    .ep-card.top-card {
+      border-color: rgba(34,197,94,0.4);
+      box-shadow: 0 0 0 1px rgba(34,197,94,0.15);
+    }
+
+    .ep-row1 {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 4px;
+    }
+    .ep-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-bd);
+      border-radius: 5px;
+      padding: 1px 6px;
+      flex-shrink: 0;
+    }
+    .ep-top-badge {
+      font-size: 10px;
+      color: var(--amber);
+      background: var(--amber-dim);
+      border: 1px solid rgba(251,191,36,0.3);
+      border-radius: 5px;
+      padding: 1px 6px;
+      flex-shrink: 0;
+    }
+    .ep-topic {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .ep-views {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
+    .ep-views .views-num { color: var(--accent); }
+
+    .ep-score-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 8px;
+    }
+    .dots { display: flex; gap: 2px; }
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--surface3);
+      flex-shrink: 0;
+    }
+    .dot.on { background: var(--accent); }
+    .dot.on.mid { background: var(--amber); }
+    .dot.on.low { background: var(--red); }
+    .score-txt { font-size: 11px; color: var(--text-muted); margin-left: 2px; }
+
+    .ep-actions {
+      display: flex;
+      gap: 5px;
+      margin-top: 2px;
+    }
+    .btn-sm {
+      font-size: 11px;
+      font-family: inherit;
+      border-radius: 6px;
+      padding: 3px 9px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface3);
+      color: var(--text-dim);
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .btn-sm:hover { background: var(--surface2); }
+    .btn-sm.advance { border-color: var(--accent-bd); color: var(--accent); }
+    .btn-sm.advance:hover { background: var(--accent-dim); }
+    .btn-sm.del { margin-left: auto; }
+    .btn-sm.del:hover { border-color: rgba(248,113,113,0.4); color: var(--red); }
+    .btn-sm.edit-btn:hover { border-color: rgba(96,165,250,0.4); color: #60a5fa; }
+    .btn-sm.notes-btn.has-notes { border-color: rgba(251,191,36,0.35); color: var(--amber); }
+    .btn-sm.notes-btn:hover { border-color: rgba(251,191,36,0.4); color: var(--amber); }
+
+    /* ── Notes area ─────────────────────────── */
+    .ep-notes-wrap {
+      display: none;
+      margin-top: 6px;
+    }
+    .ep-notes-wrap.open { display: block; }
+    .ep-notes-input {
+      width: 100%;
+      background: var(--surface3);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 7px 9px;
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: inherit;
+      resize: vertical;
+      min-height: 60px;
+      line-height: 1.5;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .ep-notes-input:focus { border-color: rgba(251,191,36,0.4); color: var(--text); }
+    .ep-notes-input::placeholder { color: var(--text-muted); font-style: italic; }
+
+    /* ── Toast ──────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(8px);
+      background: var(--surface);
+      border: 1px solid var(--accent-bd);
+      color: var(--accent);
+      font-size: 13px;
+      padding: 8px 18px;
+      border-radius: 99px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      white-space: nowrap;
+      z-index: 99;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="top-bar">
+    <div>
+      <h1>Episode Tracker<span class="accent">.</span></h1>
+      <p>@focuswithfields · drag cards between columns to update status</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn-outline" id="export-btn" onclick="exportMd()">Export ↓</button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row" id="stats-row"></div>
+
+  <!-- Form -->
+  <div class="form-card">
+    <div class="form-title" id="form-title">Add Episode</div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label>Ep #</label>
+        <input type="number" id="f-num" placeholder="42" min="1" />
+      </div>
+      <div class="form-field">
+        <label>Topic</label>
+        <input type="text" id="f-topic" placeholder="e.g. phone addiction at 2am" />
+      </div>
+      <div class="form-field">
+        <label>Status</label>
+        <select id="f-status">
+          <option value="writing">Writing</option>
+          <option value="ready">Ready</option>
+          <option value="posted">Posted</option>
+        </select>
+      </div>
+      <div class="score-field">
+        <label style="font-size:11px;color:var(--text-muted)">Viral Score</label>
+        <div class="score-row-input">
+          <input type="range" id="f-score" min="1" max="10" value="5"
+                 oninput="document.getElementById('f-score-val').textContent=this.value" />
+          <span class="score-display" id="f-score-val">5</span>
+        </div>
+      </div>
+      <div class="form-field">
+        <label>Views</label>
+        <input type="number" id="f-views" placeholder="e.g. 14200" min="0" />
+      </div>
+      <div style="display:flex;gap:6px;align-items:flex-end">
+        <button class="btn-add" id="btn-add" onclick="submitForm()">Add</button>
+        <button class="btn-cancel" id="btn-cancel" onclick="cancelEdit()">Cancel</button>
+      </div>
+    </div>
+    <div class="form-error" id="form-error"></div>
+  </div>
+
+  <!-- Kanban -->
+  <div class="kanban" id="kanban"></div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ── Storage ──────────────────────────────────────────────────────────────
+  const KEY = 'fwf_episodes';
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; }
+    catch { return []; }
+  }
+
+  function save(data) {
+    localStorage.setItem(KEY, JSON.stringify(data));
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+  function fmtViews(n) {
+    if (!n || n <= 0) return '—';
+    if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+    if (n >= 1_000)     return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+    return n.toLocaleString();
+  }
+
+  function renderDots(score) {
+    let html = '<div class="dots">';
+    for (let i = 1; i <= 10; i++) {
+      const cls = i <= score
+        ? (score <= 4 ? 'dot on low' : score <= 7 ? 'dot on mid' : 'dot on')
+        : 'dot';
+      html += `<span class="${cls}"></span>`;
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function scoreColor(score) {
+    if (score <= 4) return 'var(--red)';
+    if (score <= 7) return 'var(--amber)';
+    return 'var(--accent)';
+  }
+
+  function calcStreak(eps) {
+    const posted = eps
+      .filter(e => e.status === 'posted')
+      .map(e => e.number)
+      .sort((a, b) => b - a);
+    if (!posted.length) return 0;
+    let streak = 1;
+    for (let i = 0; i < posted.length - 1; i++) {
+      if (posted[i] - posted[i + 1] === 1) streak++;
+      else break;
+    }
+    return streak;
+  }
+
+  function bestEp(eps) {
+    return eps
+      .filter(e => e.status === 'posted' && e.views > 0)
+      .sort((a, b) => b.views - a.views)[0] || null;
+  }
+
+  function calcAvg(eps) {
+    const posted = eps.filter(e => e.status === 'posted' && e.views > 0);
+    if (!posted.length) return 0;
+    return Math.round(posted.reduce((s, e) => s + e.views, 0) / posted.length);
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 1800);
+  }
+
+  // ── Stats ────────────────────────────────────────────────────────────────
+  function renderStats() {
+    const eps   = load();
+    const top   = bestEp(eps);
+    const streak = calcStreak(eps);
+    const avg   = calcAvg(eps);
+    const total = eps.length;
+
+    document.getElementById('stats-row').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">Total Episodes</div>
+        <div class="stat-val">${total}</div>
+        <div class="stat-sub">${eps.filter(e=>e.status==='posted').length} posted</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Avg Views</div>
+        <div class="stat-val">${fmtViews(avg)}</div>
+        <div class="stat-sub">posted w/ views</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Best Performer</div>
+        <div class="stat-val">${top ? fmtViews(top.views) : '—'}</div>
+        <div class="stat-sub">${top ? `#${top.number} ${top.topic}` : 'No posted views yet'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Post Streak</div>
+        <div class="stat-val">${streak}</div>
+        <div class="stat-sub">${streak === 1 ? 'episode' : 'consecutive episodes'}</div>
+      </div>`;
+  }
+
+  // ── Kanban ───────────────────────────────────────────────────────────────
+  let dragId = null;
+
+  const COLS = [
+    { id: 'writing', label: 'Writing' },
+    { id: 'ready',   label: 'Ready' },
+    { id: 'posted',  label: 'Posted' },
+  ];
+
+  const ADVANCE = { writing: 'ready', ready: 'posted' };
+  const ADVANCE_LABEL = { writing: '→ Ready', ready: '→ Posted' };
+  const BACK_LABEL    = { ready: '← Writing', posted: '← Ready' };
+  const BACK          = { ready: 'writing', posted: 'ready' };
+
+  function renderKanban() {
+    const eps    = load();
+    const top    = bestEp(eps);
+    const kanban = document.getElementById('kanban');
+    kanban.innerHTML = '';
+
+    COLS.forEach(col => {
+      const cards = eps
+        .filter(e => e.status === col.id)
+        .sort((a, b) => b.number - a.number);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'col-wrap';
+      wrap.dataset.status = col.id;
+
+      wrap.addEventListener('dragover', e => {
+        e.preventDefault();
+        wrap.classList.add('drag-over');
+      });
+      wrap.addEventListener('dragleave', () => wrap.classList.remove('drag-over'));
+      wrap.addEventListener('drop', e => {
+        e.preventDefault();
+        wrap.classList.remove('drag-over');
+        if (dragId) { updateStatus(dragId, col.id); dragId = null; }
+      });
+
+      wrap.innerHTML = `
+        <div class="col-head">
+          <span class="col-name ${col.id}">${col.label}</span>
+          <span class="col-count">${cards.length}</span>
+        </div>`;
+
+      const body = document.createElement('div');
+      body.className = 'col-body';
+
+      if (!cards.length) {
+        body.innerHTML = `<div class="col-empty">No episodes yet</div>`;
+      } else {
+        cards.forEach(ep => {
+          const isTop = top && ep.id === top.id;
+          const card  = document.createElement('div');
+          card.className = 'ep-card' + (isTop ? ' top-card' : '');
+          card.draggable = true;
+          card.dataset.id = ep.id;
+
+          card.addEventListener('dragstart', () => {
+            dragId = ep.id;
+            card.classList.add('dragging');
+          });
+          card.addEventListener('dragend', () => card.classList.remove('dragging'));
+
+          const viewsHtml = ep.status === 'posted'
+            ? `<div class="ep-views"><span class="views-num">${fmtViews(ep.views)}</span> views</div>`
+            : '';
+
+          const advBtn = ADVANCE[ep.status]
+            ? `<button class="btn-sm advance" onclick="updateStatus('${ep.id}','${ADVANCE[ep.status]}')">${ADVANCE_LABEL[ep.status]}</button>`
+            : '';
+          const backBtn = BACK[ep.status]
+            ? `<button class="btn-sm" onclick="updateStatus('${ep.id}','${BACK[ep.status]}')">${BACK_LABEL[ep.status]}</button>`
+            : '';
+
+          const hasNotes = ep.notes && ep.notes.trim().length > 0;
+          card.innerHTML = `
+            <div class="ep-row1">
+              <span class="ep-num">#${ep.number}</span>
+              ${isTop ? '<span class="ep-top-badge">★ Top</span>' : ''}
+              <span class="ep-topic" title="${esc(ep.topic)}">${esc(ep.topic)}</span>
+            </div>
+            ${viewsHtml}
+            <div class="ep-score-row">
+              ${renderDots(ep.viralScore)}
+              <span class="score-txt" style="color:${scoreColor(ep.viralScore)}">${ep.viralScore}/10</span>
+            </div>
+            <div class="ep-actions">
+              ${backBtn}${advBtn}
+              <button class="btn-sm edit-btn" onclick="startEdit('${ep.id}')">Edit</button>
+              <button class="btn-sm notes-btn${hasNotes ? ' has-notes' : ''}" data-id="${ep.id}" onclick="toggleNotes('${ep.id}',this)">Notes${hasNotes ? ' ●' : ''}</button>
+              <button class="btn-sm del" onclick="deleteEp('${ep.id}')">✕</button>
+            </div>
+            <div class="ep-notes-wrap" id="notes-wrap-${ep.id}">
+              <textarea class="ep-notes-input" id="notes-${ep.id}"
+                placeholder="Hook ideas, angles, Aneko feedback…"
+                onblur="saveNotes('${ep.id}',this.value)">${esc(ep.notes || '')}</textarea>
+            </div>`;
+
+          body.appendChild(card);
+        });
+      }
+
+      wrap.appendChild(body);
+      kanban.appendChild(wrap);
+    });
+  }
+
+  function render() { renderStats(); renderKanban(); }
+
+  // ── CRUD ─────────────────────────────────────────────────────────────────
+  function updateStatus(id, status) {
+    const eps = load();
+    const ep  = eps.find(e => e.id === id);
+    if (ep) { ep.status = status; save(eps); render(); }
+  }
+
+  function toggleNotes(id, btn) {
+    const wrap = document.getElementById(`notes-wrap-${id}`);
+    const open = wrap.classList.toggle('open');
+    if (open) document.getElementById(`notes-${id}`).focus();
+    btn.textContent = open
+      ? 'Notes ▲'
+      : 'Notes' + (btn.classList.contains('has-notes') ? ' ●' : '');
+  }
+
+  function saveNotes(id, value) {
+    const eps = load();
+    const ep = eps.find(e => e.id === id);
+    if (ep) { ep.notes = value; save(eps); render(); }
+  }
+
+  function deleteEp(id) {
+    const eps = load().filter(e => e.id !== id);
+    save(eps);
+    render();
+    toast('Episode removed.');
+  }
+
+  // ── Form ─────────────────────────────────────────────────────────────────
+  let editingId = null;
+
+  function submitForm() {
+    const num    = parseInt(document.getElementById('f-num').value, 10);
+    const topic  = document.getElementById('f-topic').value.trim();
+    const status = document.getElementById('f-status').value;
+    const score  = parseInt(document.getElementById('f-score').value, 10);
+    const views  = parseInt(document.getElementById('f-views').value, 10) || 0;
+    const errEl  = document.getElementById('form-error');
+
+    if (!num || num < 1) { errEl.textContent = 'Episode number required.'; return; }
+    if (!topic)           { errEl.textContent = 'Topic required.'; return; }
+    errEl.textContent = '';
+
+    const eps = load();
+
+    if (editingId) {
+      const ep = eps.find(e => e.id === editingId);
+      if (ep) {
+        const dupe = eps.find(e => e.number === num && e.id !== editingId);
+        if (dupe) { errEl.textContent = `Episode #${num} already exists.`; return; }
+        Object.assign(ep, { number: num, topic, status, viralScore: score, views, notes: ep.notes || "" });
+        toast('Episode updated.');
+      }
+      cancelEdit();
+    } else {
+      if (eps.find(e => e.number === num)) {
+        errEl.textContent = `Episode #${num} already exists.`;
+        return;
+      }
+      eps.push({ id: uid(), number: num, topic, status, viralScore: score, views, notes: "", createdAt: new Date().toISOString() });
+      toast(`Episode #${num} added.`);
+      resetForm();
+    }
+
+    save(eps);
+    render();
+  }
+
+  function startEdit(id) {
+    const ep = load().find(e => e.id === id);
+    if (!ep) return;
+    editingId = id;
+
+    document.getElementById('f-num').value   = ep.number;
+    document.getElementById('f-topic').value = ep.topic;
+    document.getElementById('f-status').value = ep.status;
+    document.getElementById('f-score').value  = ep.viralScore;
+    document.getElementById('f-score-val').textContent = ep.viralScore;
+    document.getElementById('f-views').value  = ep.views || '';
+    document.getElementById('form-error').textContent = '';
+    document.getElementById('form-title').textContent = `Editing #${ep.number}`;
+    document.getElementById('btn-add').textContent = 'Update';
+    document.getElementById('btn-add').classList.add('editing');
+    document.getElementById('btn-cancel').classList.add('visible');
+
+    document.getElementById('f-num').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    document.getElementById('f-topic').focus();
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    resetForm();
+    document.getElementById('form-title').textContent = 'Add Episode';
+    document.getElementById('btn-add').textContent = 'Add';
+    document.getElementById('btn-add').classList.remove('editing');
+    document.getElementById('btn-cancel').classList.remove('visible');
+  }
+
+  function resetForm() {
+    document.getElementById('f-num').value    = '';
+    document.getElementById('f-topic').value  = '';
+    document.getElementById('f-status').value = 'writing';
+    document.getElementById('f-score').value  = '5';
+    document.getElementById('f-score-val').textContent = '5';
+    document.getElementById('f-views').value  = '';
+    document.getElementById('form-error').textContent = '';
+  }
+
+  // Enter key on topic/views submits
+  ['f-topic','f-views','f-num'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitForm();
+    });
+  });
+
+  // ── Export ───────────────────────────────────────────────────────────────
+  function exportMd() {
+    const eps = load().slice().sort((a, b) => b.number - a.number);
+    if (!eps.length) { toast('No episodes to export.'); return; }
+
+    const top = bestEp(eps);
+    const lines = [
+      '# @focuswithfields Episode Log',
+      '',
+      '| # | Topic | Status | Score | Views |',
+      '|---|-------|--------|-------|-------|',
+      ...eps.map(e =>
+        `| ${e.number} | ${e.topic} | ${e.status} | ${e.viralScore}/10 | ${fmtViews(e.views)} |`
+      ),
+      '',
+      `**Total:** ${eps.length} episodes · **Avg views:** ${fmtViews(calcAvg(eps))} · **Best:** ${top ? `#${top.number} "${top.topic}" ${fmtViews(top.views)}` : 'n/a'}`,
+    ];
+
+    const md  = lines.join('\n');
+    const btn = document.getElementById('export-btn');
+
+    navigator.clipboard.writeText(md).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Export ↓'; btn.classList.remove('copied'); }, 2000);
+    }).catch(() => {
+      const ta = Object.assign(document.createElement('textarea'), {
+        value: md, style: 'position:fixed;opacity:0',
+      });
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+      toast('Copied to clipboard.');
+    });
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  render();
+</script>
+</body>
+</html>
