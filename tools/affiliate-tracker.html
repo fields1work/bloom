@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Affiliate Tracker · @focuswithfields</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:           #0d0d0d;
+      --surface:      #111111;
+      --surface2:     #181818;
+      --surface3:     #1e1e1e;
+      --border:       rgba(255,255,255,0.07);
+      --border-hi:    rgba(34,197,94,0.35);
+      --accent:       #22c55e;
+      --accent-dim:   rgba(34,197,94,0.12);
+      --accent-bd:    rgba(34,197,94,0.28);
+      --text:         #f1f5f9;
+      --text-dim:     #94a3b8;
+      --text-muted:   #475569;
+      --amber:        #fbbf24;
+      --amber-dim:    rgba(251,191,36,0.10);
+      --amber-bd:     rgba(251,191,36,0.28);
+      --red:          #f87171;
+      --red-dim:      rgba(248,113,113,0.10);
+      --red-bd:       rgba(248,113,113,0.28);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter','Segoe UI',system-ui,-apple-system,sans-serif;
+      min-height: 100vh;
+      padding: 32px 16px 80px;
+      line-height: 1.5;
+    }
+
+    .container { max-width: 980px; margin: 0 auto; }
+
+    /* ── Top bar ────────────────────────────── */
+    .top-bar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .top-bar h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+    .top-bar p  { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    .accent     { color: var(--accent); }
+    .top-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .btn-ghost:hover { border-color: var(--border-hi); color: var(--accent); }
+    .btn-ghost.copied { border-color: var(--accent); color: var(--accent); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0a0a0a;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-primary:hover { background: #4ade80; }
+
+    /* ── Stats row ──────────────────────────── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 560px) { .stats-row { grid-template-columns: repeat(3, 1fr); } }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 4px; }
+    .stat-val   { font-size: 24px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+    .stat-val.green  { color: var(--accent); }
+    .stat-val.amber  { color: var(--amber); }
+    .stat-val.red    { color: var(--red); }
+
+    /* ── Form ───────────────────────────────── */
+    .form-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 20px;
+    }
+    .form-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 12px; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 120px 140px 140px auto;
+      gap: 8px;
+      align-items: end;
+    }
+    @media (max-width: 860px) { .form-grid { grid-template-columns: 1fr 1fr 120px; } }
+    @media (max-width: 520px) { .form-grid { grid-template-columns: 1fr 1fr; } }
+
+    .form-field { display: flex; flex-direction: column; gap: 4px; }
+    .form-field label { font-size: 11px; color: var(--text-muted); }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="email"],
+    select {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      font-family: inherit;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+    input::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+    input:focus, select:focus { border-color: var(--border-hi); }
+    input::placeholder { color: var(--text-muted); }
+    select option { background: #1e1e1e; color: var(--text); }
+
+    .btn-add {
+      background: var(--accent);
+      color: #0a0a0a;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      height: 34px;
+      align-self: flex-end;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+    .btn-add:hover { background: #4ade80; }
+    .btn-add.editing { background: var(--amber); }
+
+    .btn-cancel {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      height: 34px;
+      align-self: flex-end;
+      display: none;
+    }
+    .btn-cancel:hover { border-color: var(--red-bd); color: var(--red); }
+    .btn-cancel.visible { display: block; }
+    .form-error { font-size: 12px; color: var(--red); min-height: 16px; margin-top: 8px; }
+
+    /* ── Programs table ─────────────────────── */
+    .programs-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+
+    .programs-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .programs-table th {
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      white-space: nowrap;
+    }
+
+    .programs-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .programs-table tr:last-child td { border-bottom: none; }
+    .programs-table tr:hover td { background: var(--surface2); }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      white-space: nowrap;
+    }
+    .status-pill.active   { background: var(--accent-dim); border: 1px solid var(--accent-bd); color: var(--accent); }
+    .status-pill.pending  { background: var(--amber-dim);  border: 1px solid var(--amber-bd);  color: var(--amber); }
+    .status-pill.rejected { background: var(--red-dim);    border: 1px solid var(--red-bd);    color: var(--red); }
+
+    .days-pending {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--amber);
+    }
+    .days-pending.long { color: var(--red); }
+    .days-pending.done { color: var(--text-muted); }
+
+    .contact-cell { font-size: 12px; color: var(--text-dim); }
+    .contact-cell a { color: var(--text-dim); text-decoration: none; }
+    .contact-cell a:hover { color: var(--accent); }
+
+    .followup-cell { font-size: 12px; }
+    .followup-cell.overdue { color: var(--red); font-weight: 600; }
+    .followup-cell.soon    { color: var(--amber); }
+    .followup-cell.ok      { color: var(--text-dim); }
+
+    .row-actions { display: flex; gap: 5px; }
+    .btn-row {
+      font-size: 11px;
+      font-family: inherit;
+      border-radius: 5px;
+      padding: 3px 8px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface3);
+      color: var(--text-dim);
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .btn-row:hover { color: var(--text); }
+    .btn-row.del:hover { border-color: var(--red-bd); color: var(--red); }
+    .btn-row.edit:hover { border-color: rgba(96,165,250,0.4); color: #60a5fa; }
+
+    .empty-msg {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    @media (max-width: 700px) {
+      .programs-table thead { display: none; }
+      .programs-table td { display: block; padding: 6px 14px; }
+      .programs-table td::before { content: attr(data-label) ": "; font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; }
+      .programs-table tr { border-bottom: 1px solid var(--border); display: block; padding: 8px 0; }
+      .programs-table tr:last-child { border-bottom: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="top-bar">
+    <div>
+      <h1>Affiliate Tracker<span class="accent">.</span></h1>
+      <p>@focuswithfields · program status, contacts, follow-up dates</p>
+    </div>
+    <div class="top-actions">
+      <button class="btn-ghost" id="export-btn" onclick="exportMd()">Export ↓</button>
+    </div>
+  </div>
+
+  <div class="stats-row" id="stats-row"></div>
+
+  <div class="form-card">
+    <div class="form-title" id="form-title">Add Program</div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label>Program</label>
+        <input type="text" id="f-name" placeholder="e.g. Notion" />
+      </div>
+      <div class="form-field">
+        <label>Contact</label>
+        <input type="email" id="f-contact-email" placeholder="name@company.com" />
+      </div>
+      <div class="form-field">
+        <label>Contact name</label>
+        <input type="text" id="f-contact-name" placeholder="e.g. Martyn" />
+      </div>
+      <div class="form-field">
+        <label>Status</label>
+        <select id="f-status">
+          <option value="pending">Pending</option>
+          <option value="active">Active</option>
+          <option value="rejected">Rejected</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Applied date</label>
+        <input type="date" id="f-applied" />
+      </div>
+      <div class="form-field">
+        <label>Follow-up date</label>
+        <input type="date" id="f-followup" />
+      </div>
+      <div style="display:flex;gap:6px;align-items:flex-end;grid-column:span 1">
+        <button class="btn-add" id="btn-add" onclick="submitForm()">Add</button>
+        <button class="btn-cancel" id="btn-cancel" onclick="cancelEdit()">Cancel</button>
+      </div>
+    </div>
+    <div class="form-error" id="form-error"></div>
+  </div>
+
+  <div class="programs-wrap">
+    <table class="programs-table" id="programs-table">
+      <thead>
+        <tr>
+          <th>Program</th>
+          <th>Status</th>
+          <th>Applied</th>
+          <th>Days pending</th>
+          <th>Contact</th>
+          <th>Follow-up</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="programs-body"></tbody>
+    </table>
+  </div>
+
+</div>
+<script>
+  const KEY = 'fwf_affiliates';
+
+  // ── Seed data ────────────────────────────────────────────────────────────
+  const SEED = [
+    { id: 's1', name: 'Amazon Associates',  status: 'active',   appliedDate: '2026-01-15', followupDate: '',           contactName: '',        contactEmail: '' },
+    { id: 's2', name: 'UberNet / Mind Lab Pro', status: 'pending', appliedDate: '2026-02-10', followupDate: '2026-04-01', contactName: 'Martyn',  contactEmail: 'martyn.s@performancelab.com' },
+    { id: 's3', name: 'Notion',             status: 'pending',  appliedDate: '2026-02-20', followupDate: '2026-04-10', contactName: '',        contactEmail: '' },
+    { id: 's4', name: 'Blinkist',           status: 'pending',  appliedDate: '2026-02-20', followupDate: '2026-04-10', contactName: '',        contactEmail: '' },
+    { id: 's5', name: 'Headspace (FlexOffers)', status: 'pending', appliedDate: '2026-02-20', followupDate: '2026-04-10', contactName: '',     contactEmail: '' },
+  ];
+
+  // ── Storage ──────────────────────────────────────────────────────────────
+  function load() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(KEY));
+      return Array.isArray(raw) ? raw : null;
+    } catch { return null; }
+  }
+
+  function save(data) { localStorage.setItem(KEY, JSON.stringify(data)); }
+
+  function getData() {
+    const d = load();
+    if (!d) { save(SEED); return SEED.map(s => ({ ...s })); }
+    return d;
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function daysSince(iso) {
+    if (!iso) return null;
+    const diff = Date.now() - new Date(iso).getTime();
+    return Math.floor(diff / 86400000);
+  }
+
+  function daysUntil(iso) {
+    if (!iso) return null;
+    const diff = new Date(iso).getTime() - Date.now();
+    return Math.ceil(diff / 86400000);
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    const [y, m, d] = iso.split('-');
+    return `${m}/${d}/${y.slice(2)}`;
+  }
+
+  // ── Stats ────────────────────────────────────────────────────────────────
+  function renderStats() {
+    const progs = getData();
+    const active   = progs.filter(p => p.status === 'active').length;
+    const pending  = progs.filter(p => p.status === 'pending').length;
+    const rejected = progs.filter(p => p.status === 'rejected').length;
+
+    document.getElementById('stats-row').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-label">Active</div>
+        <div class="stat-val green">${active}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pending</div>
+        <div class="stat-val amber">${pending}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Rejected</div>
+        <div class="stat-val red">${rejected}</div>
+      </div>`;
+  }
+
+  // ── Table ────────────────────────────────────────────────────────────────
+  function renderTable() {
+    const progs  = getData();
+    const tbody  = document.getElementById('programs-body');
+    if (!progs.length) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-msg">No programs yet. Add one above.</div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = progs.map(p => {
+      const days    = p.status === 'pending' ? daysSince(p.appliedDate) : null;
+      const until   = daysUntil(p.followupDate);
+      const daysHtml = days !== null
+        ? `<span class="days-pending${days > 60 ? ' long' : ''}">${days}d</span>`
+        : `<span class="days-pending done">—</span>`;
+
+      let fuClass = 'ok', fuText = fmtDate(p.followupDate);
+      if (p.followupDate) {
+        if (until < 0)       { fuClass = 'overdue'; fuText = `${Math.abs(until)}d overdue`; }
+        else if (until <= 7) { fuClass = 'soon';    fuText = `in ${until}d`; }
+      } else { fuText = '—'; }
+
+      const contactHtml = p.contactEmail
+        ? `<span>${esc(p.contactName || '')}</span><br><a href="mailto:${esc(p.contactEmail)}">${esc(p.contactEmail)}</a>`
+        : esc(p.contactName || '—');
+
+      return `<tr>
+        <td data-label="Program"><strong>${esc(p.name)}</strong></td>
+        <td data-label="Status"><span class="status-pill ${p.status}">${p.status}</span></td>
+        <td data-label="Applied">${fmtDate(p.appliedDate)}</td>
+        <td data-label="Days pending">${daysHtml}</td>
+        <td data-label="Contact" class="contact-cell">${contactHtml}</td>
+        <td data-label="Follow-up" class="followup-cell ${fuClass}">${fuText}</td>
+        <td><div class="row-actions">
+          <button class="btn-row edit" onclick="startEdit('${p.id}')">Edit</button>
+          <button class="btn-row del" onclick="deleteProg('${p.id}')">✕</button>
+        </div></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function render() { renderStats(); renderTable(); }
+
+  // ── CRUD ─────────────────────────────────────────────────────────────────
+  function deleteProg(id) {
+    const d = getData().filter(p => p.id !== id);
+    save(d); render();
+  }
+
+  // ── Form ─────────────────────────────────────────────────────────────────
+  let editingId = null;
+
+  function submitForm() {
+    const name          = document.getElementById('f-name').value.trim();
+    const status        = document.getElementById('f-status').value;
+    const contactEmail  = document.getElementById('f-contact-email').value.trim();
+    const contactName   = document.getElementById('f-contact-name').value.trim();
+    const appliedDate   = document.getElementById('f-applied').value;
+    const followupDate  = document.getElementById('f-followup').value;
+    const errEl         = document.getElementById('form-error');
+
+    if (!name) { errEl.textContent = 'Program name required.'; return; }
+    errEl.textContent = '';
+
+    const d = getData();
+
+    if (editingId) {
+      const p = d.find(x => x.id === editingId);
+      if (p) Object.assign(p, { name, status, contactEmail, contactName, appliedDate, followupDate });
+      cancelEdit();
+    } else {
+      d.push({ id: uid(), name, status, contactEmail, contactName, appliedDate, followupDate });
+      resetForm();
+    }
+    save(d); render();
+  }
+
+  function startEdit(id) {
+    const p = getData().find(x => x.id === id);
+    if (!p) return;
+    editingId = id;
+    document.getElementById('f-name').value          = p.name;
+    document.getElementById('f-status').value        = p.status;
+    document.getElementById('f-contact-email').value = p.contactEmail || '';
+    document.getElementById('f-contact-name').value  = p.contactName || '';
+    document.getElementById('f-applied').value       = p.appliedDate || '';
+    document.getElementById('f-followup').value      = p.followupDate || '';
+    document.getElementById('form-title').textContent = `Editing — ${p.name}`;
+    document.getElementById('btn-add').textContent   = 'Update';
+    document.getElementById('btn-add').classList.add('editing');
+    document.getElementById('btn-cancel').classList.add('visible');
+    document.getElementById('f-name').focus();
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    resetForm();
+    document.getElementById('form-title').textContent = 'Add Program';
+    document.getElementById('btn-add').textContent    = 'Add';
+    document.getElementById('btn-add').classList.remove('editing');
+    document.getElementById('btn-cancel').classList.remove('visible');
+  }
+
+  function resetForm() {
+    ['f-name','f-contact-email','f-contact-name','f-applied','f-followup'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('f-status').value = 'pending';
+    document.getElementById('form-error').textContent = '';
+  }
+
+  ['f-name','f-contact-email','f-contact-name'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') submitForm(); });
+  });
+
+  // ── Export ───────────────────────────────────────────────────────────────
+  function exportMd() {
+    const progs = getData();
+    const today = new Date().toISOString().slice(0, 10);
+    const lines = [
+      `# Affiliate Programs — @focuswithfields (${today})`,
+      '',
+      '| Program | Status | Applied | Days Pending | Contact | Follow-up |',
+      '|---------|--------|---------|-------------|---------|-----------|',
+      ...progs.map(p => {
+        const days = p.status === 'pending' && p.appliedDate ? `${daysSince(p.appliedDate)}d` : '—';
+        const contact = [p.contactName, p.contactEmail].filter(Boolean).join(' ');
+        return `| ${p.name} | ${p.status} | ${p.appliedDate || '—'} | ${days} | ${contact || '—'} | ${p.followupDate || '—'} |`;
+      }),
+    ];
+
+    const md  = lines.join('\n');
+    const btn = document.getElementById('export-btn');
+    navigator.clipboard.writeText(md).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Export ↓'; btn.classList.remove('copied'); }, 2000);
+    }).catch(() => {
+      const ta = Object.assign(document.createElement('textarea'), { value: md, style: 'position:fixed;opacity:0' });
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    });
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+  render();
+</script>
+</body>
+</html>
