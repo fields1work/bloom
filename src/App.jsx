@@ -198,6 +198,7 @@ const getInitialData = () => {
     failStruggle: null,
     focusArea: null,
     theme: "dark",
+    celebratedStreak30: false,
   };
 
   if (!raw) return fallback;
@@ -261,6 +262,57 @@ function PlantParticles() {
           }}
         />
       ))}
+    </div>
+  );
+}
+
+const CONFETTI_COLORS = ["#22c55e","#4ade80","#86efac","#fbbf24","#ffffff","#34d399","#a3e635"];
+
+function Confetti({ onClose }) {
+  const pieces = useMemo(() =>
+    Array.from({ length: 38 }, (_, i) => ({
+      id: i,
+      left: `${(i / 38) * 100 + (Math.sin(i) * 8)}%`,
+      delay: `${(i * 0.07) % 2}s`,
+      dur: `${2.4 + (i % 7) * 0.3}s`,
+      color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+      size: `${5 + (i % 5) * 2}px`,
+      round: i % 3 === 0,
+    })),
+  []);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+      {pieces.map((p) => (
+        <span
+          key={p.id}
+          className="confetti-piece pointer-events-none absolute top-0"
+          style={{
+            left: p.left,
+            width: p.size,
+            height: p.size,
+            background: p.color,
+            borderRadius: p.round ? "50%" : "2px",
+            animationDelay: p.delay,
+            animationDuration: p.dur,
+          }}
+          aria-hidden="true"
+        />
+      ))}
+      <div className="relative z-10 mx-5 w-full max-w-xs rounded-2xl border border-[#22c55e]/40 bg-slate-900/98 p-8 text-center shadow-2xl">
+        <div className="mb-3 text-4xl" aria-hidden="true">🌸</div>
+        <h2 className="text-xl font-bold tracking-tight text-slate-100">30 days.</h2>
+        <p className="mt-2 text-sm leading-relaxed text-slate-300">
+          You&apos;re not the same person who started.
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-5 w-full rounded-xl bg-[#22c55e] px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-[#4ade80]"
+        >
+          Keep going
+        </button>
+      </div>
     </div>
   );
 }
@@ -436,6 +488,10 @@ function App() {
       ...prev,
       hasOnboarded: true,
     }));
+  };
+
+  const handleCloseConfetti = () => {
+    setData((prev) => ({ ...prev, celebratedStreak30: true }));
   };
 
   const handleStruggleSelect = (struggle) => {
@@ -956,6 +1012,9 @@ function App() {
           )}
         </section>
       </section>
+      {data.streak >= 30 && !data.celebratedStreak30 && (
+        <Confetti onClose={handleCloseConfetti} />
+      )}
       {showAbout && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <div className={`w-full max-w-sm overflow-y-auto rounded-2xl border p-5 ${isDarkMode ? "border-slate-700 bg-slate-900 text-slate-100" : "border-slate-300 bg-white text-slate-900"}`} style={{ maxHeight: "90dvh" }}>

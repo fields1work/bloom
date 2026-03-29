@@ -130,6 +130,15 @@ body {
   animation: plantBloom 1.4s ease-out;
 }
 
+@keyframes confettiFall {
+  0%   { transform: translateY(-12px) rotate(0deg);   opacity: 1; }
+  100% { transform: translateY(100vh) rotate(540deg); opacity: 0.2; }
+}
+
+.confetti-piece {
+  animation: confettiFall linear infinite;
+}
+
 @keyframes particleFloat {
   0%   { transform: translateY(0) translateX(0); opacity: 0; }
   10%  { opacity: 0.7; }
