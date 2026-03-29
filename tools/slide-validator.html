@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide Validator · @focuswithfields</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:            #0d0d0d;
+      --surface:       #111111;
+      --surface2:      #181818;
+      --border:        rgba(255,255,255,0.07);
+      --accent:        #22c55e;
+      --accent-dim:    rgba(34,197,94,0.12);
+      --accent-border: rgba(34,197,94,0.28);
+      --text:          #f1f5f9;
+      --text-dim:      #94a3b8;
+      --text-muted:    #475569;
+      --pass-bg:       rgba(34,197,94,0.08);
+      --pass-border:   rgba(34,197,94,0.22);
+      --pass-text:     #86efac;
+      --fail-bg:       rgba(239,68,68,0.08);
+      --fail-border:   rgba(239,68,68,0.25);
+      --fail-text:     #fca5a5;
+      --warn-bg:       rgba(251,191,36,0.08);
+      --warn-border:   rgba(251,191,36,0.25);
+      --warn-text:     #fde68a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 36px 16px 80px;
+      line-height: 1.5;
+    }
+
+    .container { max-width: 980px; margin: 0 auto; }
+
+    /* ── Header ─────────────────────────────── */
+    header { margin-bottom: 28px; }
+    header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
+    header p  { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+    .accent   { color: var(--accent); }
+
+    /* ── Controls bar ───────────────────────── */
+    .controls {
+      display: flex;
+      align-items: flex-end;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 5px; }
+
+    .field label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    .field input[type="number"] {
+      width: 120px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 13px;
+      font-size: 14px;
+      color: var(--text);
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.18s;
+      -moz-appearance: textfield;
+    }
+    .field input[type="number"]::-webkit-outer-spin-button,
+    .field input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .field input[type="number"]:focus { border-color: var(--accent-border); }
+    .field input::placeholder { color: var(--text-muted); }
+
+    #validate-btn {
+      background: var(--accent);
+      color: #0a0a0a;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.18s;
+      white-space: nowrap;
+      align-self: flex-end;
+    }
+    #validate-btn:hover { background: #4ade80; }
+
+    /* ── Slides grid ────────────────────────── */
+    .slides-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 640px) { .slides-grid { grid-template-columns: 1fr; } }
+
+    /* ── Slide card ─────────────────────────── */
+    .slide-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .slide-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .slide-num {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent-border);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 9px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+
+    .slide-type { font-size: 12px; color: var(--text-muted); flex: 1; }
+
+    .bg-pill {
+      font-size: 10px;
+      font-family: 'Courier New', monospace;
+      padding: 2px 8px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .bg-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.15);
+      flex-shrink: 0;
+    }
+
+    textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--text);
+      outline: none;
+      font-family: 'Courier New', Courier, monospace;
+      resize: vertical;
+      min-height: 90px;
+      line-height: 1.6;
+      transition: border-color 0.18s;
+    }
+    textarea:focus { border-color: var(--accent-border); }
+    textarea::placeholder { color: var(--text-muted); }
+
+    /* ── Results ────────────────────────────── */
+    .results { display: flex; flex-direction: column; gap: 4px; }
+    .results:empty { display: none; }
+
+    .rule-row {
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      font-size: 12.5px;
+      padding: 5px 9px;
+      border-radius: 7px;
+      border: 1px solid transparent;
+    }
+
+    .rule-row.pass {
+      background: var(--pass-bg);
+      border-color: var(--pass-border);
+      color: var(--pass-text);
+    }
+
+    .rule-row.fail {
+      background: var(--fail-bg);
+      border-color: var(--fail-border);
+      color: var(--fail-text);
+    }
+
+    .rule-row.warn {
+      background: var(--warn-bg);
+      border-color: var(--warn-border);
+      color: var(--warn-text);
+    }
+
+    .rule-row.info {
+      background: rgba(148,163,184,0.06);
+      border-color: rgba(148,163,184,0.14);
+      color: var(--text-dim);
+    }
+
+    .rule-icon { flex-shrink: 0; font-style: normal; }
+
+    .rule-text { flex: 1; }
+
+    .rule-detail {
+      font-size: 11px;
+      opacity: 0.8;
+      margin-top: 1px;
+    }
+
+    /* ── Summary ────────────────────────────── */
+    #summary {
+      margin-top: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      display: none;
+    }
+
+    #summary.visible { display: block; }
+
+    .summary-inner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .score-big {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .score-big .passed { color: var(--accent); }
+    .score-big .slash  { color: var(--text-muted); font-weight: 300; margin: 0 2px; }
+    .score-big .total  { color: var(--text-muted); }
+
+    .score-label { font-size: 13px; color: var(--text-muted); }
+
+    .score-bar-wrap {
+      flex: 1;
+      min-width: 160px;
+      background: var(--surface2);
+      border-radius: 99px;
+      height: 6px;
+      overflow: hidden;
+    }
+
+    .score-bar {
+      height: 100%;
+      border-radius: 99px;
+      background: var(--accent);
+      transition: width 0.5s ease;
+    }
+
+    .score-verdict {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* ── Tool nav ────────────────────────────── */
+    .tool-nav { display:flex; align-items:center; gap:4px; margin-bottom:28px; flex-wrap:wrap; }
+    .tool-nav-brand { font-size:13px; color:var(--accent); margin-right:8px; font-weight:600; }
+    .tool-nav a { font-size:12px; font-weight:500; color:var(--text-muted); text-decoration:none; padding:5px 10px; border-radius:6px; border:1px solid transparent; transition:color .15s,background .15s; white-space:nowrap; }
+    .tool-nav a:hover { color:var(--text); background:rgba(255,255,255,.05); }
+    .tool-nav a.active { color:var(--accent); background:var(--accent-dim); border-color:var(--accent-border); }
+  </style>
+</head>
+<body>
+<div class="container">
+  <nav class="tool-nav">
+    <span class="tool-nav-brand">🛠</span>
+    <a href="script-generator.html" data-tool="script-generator">Script Gen</a>
+    <a href="slide-validator.html" data-tool="slide-validator">Validator</a>
+    <a href="episode-tracker.html" data-tool="episode-tracker">Episodes</a>
+    <a href="affiliate-tracker.html" data-tool="affiliate-tracker">Affiliates</a>
+  </nav>
+  <script>(function(){var c=location.pathname.split('/').pop().replace('.html','');document.querySelectorAll('.tool-nav a').forEach(function(a){if(a.dataset.tool===c)a.classList.add('active');});})()</script>
+
+  <header>
+    <h1>Slide Validator<span class="accent">.</span></h1>
+    <p>@focuswithfields · Paste each slide, validate against the spec</p>
+  </header>
+
+  <div class="controls">
+    <div class="field">
+      <label for="episode-num">Episode #</label>
+      <input type="number" id="episode-num" placeholder="e.g. 42" min="1" />
+    </div>
+    <button id="validate-btn" onclick="validateAll()">Validate All Slides</button>
+  </div>
+
+  <div class="slides-grid" id="slides-grid">
+    <!-- cards injected by JS -->
+  </div>
+
+  <div id="summary">
+    <div class="summary-inner">
+      <div>
+        <div class="score-big">
+          <span class="passed" id="score-passed">0</span><span class="slash">/</span><span class="total" id="score-total">0</span>
+        </div>
+        <div class="score-label">rules passed</div>
+      </div>
+      <div class="score-bar-wrap">
+        <div class="score-bar" id="score-bar" style="width:0%"></div>
+      </div>
+      <div class="score-verdict" id="score-verdict"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const SLIDE_TYPES = ["Hook", "Relatable", "Reframe", "Why", "Fix", "CTA"];
+  const ACADEMIC    = ["dopamine","neural","cortisol","serotonin","protocol","substitution"];
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
+  function hasEmoji(str) {
+    return /\p{Extended_Pictographic}/u.test(str);
+  }
+
+  function academicHits(str) {
+    const lower = str.toLowerCase();
+    return ACADEMIC.filter(w => lower.includes(w));
+  }
+
+  function longLines(str) {
+    return str.split("\n").filter(l => l.length > 80);
+  }
+
+  function nonEmptyLines(str) {
+    return str.split("\n").filter(l => l.trim() !== "");
+  }
+
+  function wordCount(str) {
+    return str.trim().split(/\s+/).filter(Boolean).length;
+  }
+
+  // bg based on slide number (1-indexed) and episode number
+  function expectedBg(slideNum, epNum) {
+    return (slideNum + epNum) % 2 === 0 ? "#0d0d0d" : "#1a1a1a";
+  }
+
+  // rule helpers — return {pass, label, detail}
+  function rule(pass, label, detail) {
+    return { pass, label, detail: detail || "" };
+  }
+
+  function infoRule(label) {
+    return { info: true, label, detail: "" };
+  }
+
+  // ── Validators per slide ─────────────────────────────────────────────────
+
+  function validateSlide1(text, epNum) {
+    const wc = wordCount(text);
+    const ll  = longLines(text);
+    const results = [];
+
+    results.push(rule(wc <= 7,
+      `Under 8 words`,
+      wc <= 7 ? `${wc} words` : `${wc} words — trim to 7 or fewer`));
+
+    results.push(rule(text.includes("—"),
+      "Contains em dash (—)",
+      !text.includes("—") ? "No em dash found — ends with — expected" : ""));
+
+    if (epNum !== null) {
+      const epStr = String(epNum);
+      results.push(rule(text.includes(epStr),
+        `Episode number (${epStr}) present`,
+        !text.includes(epStr) ? `"${epStr}" not found in slide text` : ""));
+    } else {
+      results.push({ warn: true, label: "Episode number present", detail: "Enter an episode number above to check" });
+    }
+
+    results.push(rule(ll.length === 0,
+      "All lines ≤ 80 chars",
+      ll.length > 0 ? `${ll.length} line${ll.length>1?"s":""} over 80 chars` : ""));
+
+    results.push(rule(!hasEmoji(text),
+      "No emojis",
+      hasEmoji(text) ? "Emoji detected — remove all" : ""));
+
+    return results;
+  }
+
+  function validateSlide2(text) {
+    const lines = nonEmptyLines(text);
+    const ll    = longLines(text);
+    const results = [];
+
+    results.push(rule(lines.length <= 3,
+      "Max 3 lines",
+      lines.length > 3 ? `${lines.length} non-empty lines found` : `${lines.length} line${lines.length!==1?"s":""}`));
+
+    results.push(rule(ll.length === 0,
+      "All lines ≤ 80 chars",
+      ll.length > 0 ? `${ll.length} line${ll.length>1?"s":""} over 80 chars` : ""));
+
+    results.push(rule(!hasEmoji(text),
+      "No emojis",
+      hasEmoji(text) ? "Emoji detected — remove all" : ""));
+
+    return results;
+  }
+
+  function validateSlide3(text) {
+    const hits = academicHits(text);
+    const ll   = longLines(text);
+    const results = [];
+
+    results.push(rule(hits.length === 0,
+      "No academic language",
+      hits.length > 0 ? `Flagged: ${hits.join(", ")}` : ""));
+
+    results.push(rule(ll.length === 0,
+      "All lines ≤ 80 chars",
+      ll.length > 0 ? `${ll.length} line${ll.length>1?"s":""} over 80 chars` : ""));
+
+    results.push(rule(!hasEmoji(text),
+      "No emojis",
+      hasEmoji(text) ? "Emoji detected — remove all" : ""));
+
+    return results;
+  }
+
+  function validateSlide4(text) {
+    const trimmed = text.trimStart();
+    const hasWhy  = trimmed.startsWith("Why:");
+    const hits    = academicHits(text);
+    const ll      = longLines(text);
+    const results = [];
+
+    results.push(rule(hasWhy,
+      '"Why:" label at start',
+      !hasWhy ? 'First word must be "Why:" — missing or cased wrong' : ""));
+
+    results.push(rule(hits.length === 0,
+      "No academic language",
+      hits.length > 0 ? `Flagged: ${hits.join(", ")}` : ""));
+
+    results.push(rule(ll.length === 0,
+      "All lines ≤ 80 chars",
+      ll.length > 0 ? `${ll.length} line${ll.length>1?"s":""} over 80 chars` : ""));
+
+    results.push(rule(!hasEmoji(text),
+      "No emojis",
+      hasEmoji(text) ? "Emoji detected — remove all" : ""));
+
+    return results;
+  }
+
+  function validateSlide5(text) {
+    const trimmed  = text.trimStart();
+    const hasFix   = trimmed.startsWith("Fix:");
+    const hasBullet = text.includes("•");
+    const ll       = longLines(text);
+    const results  = [];
+
+    results.push(rule(hasFix,
+      '"Fix:" label at start',
+      !hasFix ? 'First word must be "Fix:" — missing or cased wrong' : ""));
+
+    results.push(rule(hasBullet,
+      "Bullet points using •",
+      !hasBullet ? 'No • bullets found — each action needs a •' : ""));
+
+    results.push(rule(ll.length === 0,
+      "All lines ≤ 80 chars",
+      ll.length > 0 ? `${ll.length} line${ll.length>1?"s":""} over 80 chars` : ""));
+
+    results.push(rule(!hasEmoji(text),
+      "No emojis",
+      hasEmoji(text) ? "Emoji detected — remove all" : ""));
+
+    return results;
+  }
+
+  function validateSlide6(text, epNum) {
+    const trimmed  = text.trim();
+    const ll       = longLines(text);
+    const results  = [];
+
+    results.push(rule(trimmed.toLowerCase().startsWith("save this when"),
+      'Starts with "Save this when"',
+      !trimmed.toLowerCase().startsWith("save this when")
+        ? 'CTA must open with exactly "Save this when"' : ""));
+
+    results.push(rule(text.includes("—"),
+      "Contains em dash (—)",
+      !text.includes("—") ? "No em dash found" : ""));
+
+    if (epNum !== null) {
+      const epStr = String(epNum);
+      results.push(rule(text.includes(epStr),
+        `Episode number (${epStr}) present`,
+        !text.includes(epStr) ? `"${epStr}" not found in slide text` : ""));
+    } else {
+      results.push({ warn: true, label: "Episode number present", detail: "Enter an episode number above to check" });
+    }
+
+    results.push(rule(ll.length === 0,
+      "All lines ≤ 80 chars",
+      ll.length > 0 ? `${ll.length} line${ll.length>1?"s":""} over 80 chars` : ""));
+
+    results.push(rule(!hasEmoji(text),
+      "No emojis",
+      hasEmoji(text) ? "Emoji detected — remove all" : ""));
+
+    return results;
+  }
+
+  const VALIDATORS = [
+    validateSlide1,
+    validateSlide2,
+    validateSlide3,
+    validateSlide4,
+    validateSlide5,
+    validateSlide6,
+  ];
+
+  // ── Build cards ──────────────────────────────────────────────────────────
+
+  function buildCards() {
+    const grid = document.getElementById("slides-grid");
+    grid.innerHTML = "";
+    for (let i = 0; i < 6; i++) {
+      const n = i + 1;
+      const card = document.createElement("div");
+      card.className = "slide-card";
+      card.id = `card-${n}`;
+      card.innerHTML = `
+        <div class="slide-head">
+          <span class="slide-num">Slide ${n}</span>
+          <span class="slide-type">${SLIDE_TYPES[i]}</span>
+          <span class="bg-pill" id="bg-pill-${n}">
+            <span class="bg-dot" id="bg-dot-${n}"></span>
+            <span id="bg-label-${n}">—</span>
+          </span>
+        </div>
+        <textarea id="slide-${n}" placeholder="Paste slide ${n} text here…" spellcheck="false"></textarea>
+        <div class="results" id="results-${n}"></div>`;
+      grid.appendChild(card);
+    }
+  }
+
+  function updateBgPills() {
+    const epNum = getEpisodeNum();
+    for (let n = 1; n <= 6; n++) {
+      const dot   = document.getElementById(`bg-dot-${n}`);
+      const label = document.getElementById(`bg-label-${n}`);
+      if (epNum === null) {
+        dot.style.background   = "transparent";
+        label.textContent      = "—";
+      } else {
+        const bg               = expectedBg(n, epNum);
+        dot.style.background   = bg === "#0d0d0d" ? "#0d0d0d" : "#2a2a2a";
+        dot.style.borderColor  = bg === "#0d0d0d" ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.15)";
+        label.textContent      = bg;
+      }
+    }
+  }
+
+  function getEpisodeNum() {
+    const val = document.getElementById("episode-num").value.trim();
+    if (!val || isNaN(val) || +val < 1) return null;
+    return parseInt(val, 10);
+  }
+
+  // ── Render results ───────────────────────────────────────────────────────
+
+  function renderResults(containerId, items) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = "";
+
+    for (const item of items) {
+      const row = document.createElement("div");
+
+      if (item.info) {
+        row.className = "rule-row info";
+        row.innerHTML = `<i class="rule-icon">ℹ</i><span class="rule-text">${item.label}</span>`;
+      } else if (item.warn) {
+        row.className = "rule-row warn";
+        row.innerHTML = `
+          <i class="rule-icon">⚠</i>
+          <span class="rule-text">${item.label}${item.detail ? `<div class="rule-detail">${item.detail}</div>` : ""}</span>`;
+      } else if (item.pass) {
+        row.className = "rule-row pass";
+        row.innerHTML = `
+          <i class="rule-icon">✓</i>
+          <span class="rule-text">${item.label}${item.detail ? `<div class="rule-detail">${item.detail}</div>` : ""}</span>`;
+      } else {
+        row.className = "rule-row fail";
+        row.innerHTML = `
+          <i class="rule-icon">✗</i>
+          <span class="rule-text">${item.label}${item.detail ? `<div class="rule-detail">${item.detail}</div>` : ""}</span>`;
+      }
+
+      el.appendChild(row);
+    }
+  }
+
+  // ── Main validate ────────────────────────────────────────────────────────
+
+  function validateAll() {
+    const epNum  = getEpisodeNum();
+    let passed   = 0;
+    let total    = 0;
+
+    for (let i = 0; i < 6; i++) {
+      const n      = i + 1;
+      const text   = document.getElementById(`slide-${n}`).value;
+      const fn     = VALIDATORS[i];
+      const items  = fn(text, epNum);
+
+      renderResults(`results-${n}`, items);
+
+      for (const item of items) {
+        if (item.info) continue;      // informational — not scored
+        if (item.warn) continue;      // warn — requires missing input, not scored
+        total++;
+        if (item.pass) passed++;
+      }
+    }
+
+    // Summary
+    const pct     = total > 0 ? Math.round((passed / total) * 100) : 0;
+    const verdict =
+      pct === 100 ? "Script is clean. Ready to post." :
+      pct >= 80   ? "Almost there — fix the flagged items." :
+      pct >= 50   ? "Needs work before this goes live." :
+                    "Major issues — review all slides.";
+
+    document.getElementById("score-passed").textContent  = passed;
+    document.getElementById("score-total").textContent   = total;
+    document.getElementById("score-bar").style.width     = `${pct}%`;
+    document.getElementById("score-bar").style.background =
+      pct === 100 ? "var(--accent)" : pct >= 80 ? "#86efac" : pct >= 50 ? "#fbbf24" : "#f87171";
+    document.getElementById("score-verdict").textContent = verdict;
+    document.getElementById("score-verdict").style.color =
+      pct === 100 ? "var(--accent)" : pct >= 80 ? "#86efac" : pct >= 50 ? "#fbbf24" : "#f87171";
+
+    const summary = document.getElementById("summary");
+    summary.classList.add("visible");
+    summary.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────────
+
+  buildCards();
+  document.getElementById("episode-num").addEventListener("input", updateBgPills);
+  updateBgPills();
+</script>
+</body>
+</html>

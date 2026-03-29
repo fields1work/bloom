@@ -215,10 +215,25 @@
       font-weight: 500;
     }
     .hint a:hover { text-decoration: underline; }
+
+    /* ── Tool nav ────────────────────────────── */
+    .tool-nav { display:flex; align-items:center; gap:4px; margin-bottom:28px; flex-wrap:wrap; }
+    .tool-nav-brand { font-size:13px; color:var(--accent); margin-right:8px; font-weight:600; }
+    .tool-nav a { font-size:12px; font-weight:500; color:var(--text-muted); text-decoration:none; padding:5px 10px; border-radius:6px; border:1px solid transparent; transition:color .15s,background .15s; white-space:nowrap; }
+    .tool-nav a:hover { color:var(--text); background:rgba(255,255,255,.05); }
+    .tool-nav a.active { color:var(--accent); background:var(--accent-dim); border-color:var(--accent-border); }
   </style>
 </head>
 <body>
 <div class="container">
+  <nav class="tool-nav">
+    <span class="tool-nav-brand">🛠</span>
+    <a href="script-generator.html" data-tool="script-generator">Script Gen</a>
+    <a href="slide-validator.html" data-tool="slide-validator">Validator</a>
+    <a href="episode-tracker.html" data-tool="episode-tracker">Episodes</a>
+    <a href="affiliate-tracker.html" data-tool="affiliate-tracker">Affiliates</a>
+  </nav>
+  <script>(function(){var c=location.pathname.split('/').pop().replace('.html','');document.querySelectorAll('.tool-nav a').forEach(function(a){if(a.dataset.tool===c)a.classList.add('active');});})()</script>
 
   <header>
     <h1>Script Generator<span class="accent">.</span></h1>
