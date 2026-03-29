@@ -412,6 +412,31 @@
     .ep-notes-input:focus { border-color: rgba(251,191,36,0.4); color: var(--text); }
     .ep-notes-input::placeholder { color: var(--text-muted); font-style: italic; }
 
+    /* ── Content gap banner ─────────────────── */
+    #gap-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: rgba(248,113,113,0.08);
+      border: 1px solid rgba(248,113,113,0.3);
+      border-radius: 12px;
+      padding: 11px 16px;
+      margin-bottom: 18px;
+      font-size: 13px;
+      color: #fca5a5;
+    }
+    #gap-banner.visible { display: flex; }
+    #gap-banner strong { color: #f87171; }
+    #gap-banner a {
+      margin-left: auto;
+      font-size: 12px;
+      color: #f87171;
+      text-decoration: underline;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
     /* ── Toast ──────────────────────────────── */
     #toast {
       position: fixed;
@@ -448,6 +473,10 @@
   </div>
 
   <!-- Stats -->
+  <div id="gap-banner">
+    ⚠ <span><strong>Content bank low</strong> — fewer than 3 episodes ready.</span>
+    <a href="script-generator.html">Generate scripts →</a>
+  </div>
   <div class="stats-row" id="stats-row"></div>
 
   <!-- Form -->
@@ -717,7 +746,12 @@
     });
   }
 
-  function render() { renderStats(); renderKanban(); }
+  function renderGapBanner() {
+    const ready = load().filter(e => e.status === 'ready').length;
+    document.getElementById('gap-banner').classList.toggle('visible', ready < 3);
+  }
+
+  function render() { renderStats(); renderKanban(); renderGapBanner(); }
 
   // ── CRUD ─────────────────────────────────────────────────────────────────
   function updateStatus(id, status) {
